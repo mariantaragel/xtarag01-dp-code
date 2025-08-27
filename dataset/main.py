@@ -3,7 +3,6 @@ import json
 import numpy as np
 from scipy.spatial import cKDTree
 import random
-from glob import glob
 import os
 from pathlib import Path
 
@@ -54,4 +53,4 @@ if __name__ == "__main__":
                 np.savez_compressed(f"../small-dataset/{index}/orig-{teeth}.npz", pointcloud=orig_mesh.vertices)
                 np.savez_compressed(f"../small-dataset/{index}/final-{teeth}.npz", pointcloud=final_mesh.vertices)
 
-        print(f"Preccesed mesh: {index}")
+        print(f"Precessed mesh: {index}")

@@ -88,7 +88,9 @@ def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
     parser.add_argument('--encoder_net', type=str, default='pointnet', help='encoding architecture')
     parser.add_argument('--decoder_net', type=str, default='mlp')
     parser.add_argument('--encoder_conv_layers', type=int, nargs='+', default=[32, 64, 64, 128, 256])
-    parser.add_argument('--decoder_fc_neurons', type=int, nargs='+', default=[256, 256, 512])
+    parser.add_argument('--decoder_fc_neurons', type=int, nargs='+', default=[320, 320, 576])
+    parser.add_argument('--num_embeddings', type=int, default=32, help='number of embeddings')
+    parser.add_argument('--embedding_dim', type=int, default=64, help='embedding dimension')
 
     # Training parameters
     parser.add_argument('--do_training', type=str2bool, default=True)

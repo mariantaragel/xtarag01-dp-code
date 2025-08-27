@@ -1,5 +1,7 @@
 import os
+import torch
 import os.path as osp
+from six.moves import cPickle
 
 def create_dir(dir_path):
     """Creates a directory (or nested directories) if they don't exist.

@@ -1,6 +1,7 @@
 from point_net import PointNet
 from mlp import MLP
-from .pointcloud_autoencoder import PointcloudAutoencoder
+from pointcloud_autoencoder import PointcloudAutoencoder
+from embedding import Embedding
 
 def describe_pc_ae(args):
     # Make an AE.
@@ -10,10 +11,17 @@ def describe_pc_ae(args):
     else:
         raise NotImplementedError()
 
+    if args.lookup_table == 'embedding':
+        lookup_table = Embedding(args.num_embeddings, args.embedding_dim)
+    else:
+        raise NotImplementedError()
+
     if args.decoder_net == 'mlp':
-        ae_decoder = MLP(in_feat_dims=encoder_latent_dim,
+        ae_decoder = MLP(in_feat_dims=encoder_latent_dim + args.embedding_dim,
                          out_channels=args.decoder_fc_neurons + [args.n_pc_points * 3],
                          b_norm=False)
+    else:
+        raise NotImplementedError()
 
-    model = PointcloudAutoencoder(ae_encoder, ae_decoder)
+    model = PointcloudAutoencoder(ae_encoder, lookup_table, ae_decoder)
     return model
