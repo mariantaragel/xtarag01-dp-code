@@ -1,7 +1,7 @@
-import numpy as np
-import trimesh
+import pandas as pd
 
-mesh_file = np.load("../small-dataset/17/final-12.npz")
-pointcloud = mesh_file["pointcloud"]
-mesh = trimesh.PointCloud(pointcloud)
-trimesh.Scene(mesh).show()
+data = []
+for row in some_function_that_yields_data():
+    data.append(row)
+
+pd.DataFrame(data)

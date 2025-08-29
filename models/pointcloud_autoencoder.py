@@ -11,21 +11,21 @@ from utils.stats import AverageMeter
 
 
 class PointcloudAutoencoder(nn.Module):
-    def __init__(self, encoder, lookup_table, decoder):
+    def __init__(self, encoder, conditional_embedding, decoder):
         """ AE initialization
         :param encoder: nn.Module acting as a point-cloud encoder.
-        :param lookup_table: nn.Module acting as a word lookup table.
+        :param conditional_embedding: nn.Module acting as a word lookup table.
         :param decoder: nn.Module acting as a point-cloud decoder.
         """
         super(PointcloudAutoencoder, self).__init__()
         self.encoder = encoder
-        self.lookup_table = lookup_table
+        self.conditional_embedding = conditional_embedding
         self.decoder = decoder
 
-    def __call__(self, pointclouds, tooth_numbers, bcn_format=True):
+    def __call__(self, pointclouds, utterances, bcn_format=True):
         """
         :param pointclouds: B x N x 3
-        :param tooth_numbers: B x 1
+        :param utterances: B x 1
         :param bcn_format: the AE.encoder works with Batch x Color (xyz) x Number of points format
         """
 
@@ -35,23 +35,23 @@ class PointcloudAutoencoder(nn.Module):
             pointclouds = pointclouds.transpose(2, 1).contiguous()
 
         z = self.encoder(pointclouds)
-        c = self.lookup_table(tooth_numbers)
+        c = self.conditional_embedding(utterances)
         z_c = torch.cat([z, c], dim=1)
         recon = self.decoder(z_c).view([b_size, n_points, 3])
         return recon
 
     @torch.no_grad()
-    def embed(self, pointclouds, tooth_numbers, bcn_format=True):
+    def embed(self, pointclouds, utterances, bcn_format=True):
         """ Extract from the input pointclouds the corresponding latent codes.
         :param pointclouds: B x N x 3
-        :param tooth_numbers: B x 1
+        :param utterances: B x 1
         :param bcn_format: the AE.encoder works with Batch x Color (xyz) x Number of points format
         :return: B x latent-dimension of AE
         """
         if bcn_format:
             pointclouds = pointclouds.transpose(2, 1).contiguous()
         shape_latents = self.encoder(pointclouds)
-        teeth_embeddings = self.lookup_table(tooth_numbers)
+        teeth_embeddings = self.conditional_embedding(utterances)
         return torch.cat([shape_latents, teeth_embeddings], dim=1)
 
     @torch.no_grad()
@@ -75,13 +75,15 @@ class PointcloudAutoencoder(nn.Module):
         self.train()
         loss_meter = AverageMeter()
         for batch in loader:
-            b_pc = batch['pointcloud'].to(device)
-            recon = self(b_pc)
+            b_pc_source = batch['pointcloud_source'].to(device)
+            b_pc_target = batch['pointcloud_target'].to(device)
+            b_ut = batch['utterances'].to(device)
+            recon = self(b_pc_source, b_ut)
 
             # Backward to optimize according to Chamfer loss.
             optimizer.zero_grad()
             if loss_rule == "chamfer":
-                loss = chamfer_loss(b_pc, recon).mean()
+                loss = chamfer_loss(b_pc_target, recon).mean()
             elif loss_rule == "emd":
                 raise NotImplementedError(" First install earth's mover distance loss")
                 # loss = emd_loss(b_pc, recon, transpose=False).mean()
@@ -90,7 +92,7 @@ class PointcloudAutoencoder(nn.Module):
 
             loss.backward()
             optimizer.step()
-            loss_meter.update(loss.item(), len(b_pc))
+            loss_meter.update(loss.item(), len(b_pc_source))
         return loss_meter.avg
 
     @torch.no_grad()

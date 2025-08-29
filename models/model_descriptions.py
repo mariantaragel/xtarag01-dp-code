@@ -11,17 +11,18 @@ def describe_pc_ae(args):
     else:
         raise NotImplementedError()
 
-    if args.lookup_table == 'embedding':
-        lookup_table = Embedding(args.num_embeddings, args.embedding_dim)
+    if args.conditional_net == 'embedding':
+        ae_conditional = Embedding(args.num_embeddings, args.embedding_dim)
     else:
         raise NotImplementedError()
 
     if args.decoder_net == 'mlp':
+        decoder_fc_neurons = [x + args.embedding_dim for x in args.decoder_fc_neurons]
         ae_decoder = MLP(in_feat_dims=encoder_latent_dim + args.embedding_dim,
-                         out_channels=args.decoder_fc_neurons + [args.n_pc_points * 3],
+                         out_channels=decoder_fc_neurons + [args.n_pc_points * 3],
                          b_norm=False)
     else:
         raise NotImplementedError()
 
-    model = PointcloudAutoencoder(ae_encoder, lookup_table, ae_decoder)
+    model = PointcloudAutoencoder(ae_encoder, ae_conditional, ae_decoder)
     return model
