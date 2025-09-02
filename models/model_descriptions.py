@@ -1,7 +1,7 @@
-from point_net import PointNet
-from mlp import MLP
-from pointcloud_autoencoder import PointcloudAutoencoder
-from embedding import Embedding
+from .point_net import PointNet
+from .mlp import MLP
+from .pointcloud_autoencoder import PointcloudAutoencoder
+from .embedding import Embedding
 
 def describe_pc_ae(args):
     # Make an AE.

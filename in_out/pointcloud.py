@@ -15,7 +15,6 @@ import os.path as osp
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from functools import partial
-from datasets.shape_talk import model_to_file_name
 from utils.basics import parallel_apply
 
 
@@ -127,6 +126,10 @@ def prepare_vanilla_pointcloud_datasets(args):
         print('Debugging! will only keep up to 1K point-clouds.')
         split_df = split_df.sample(min(len(split_df), 1000), random_state=args.random_seed)
         split_df.reset_index(inplace=True, drop=True)
+
+    split_df['source_file_name'] = args.data_dir + split_df['source_file_name']
+    split_df['target_file_name'] = args.data_dir + split_df['target_file_name']
+    print(split_df)
 
     assert split_df['source_file_name'].apply(
         osp.exists).all(), 'files/models in the split file should exist on the hard drive!'

@@ -1,5 +1,5 @@
 import torch
-from nn_distance import chamfer_loss as chamfer_raw
+from .nn_distance import chamfer_loss as chamfer_raw
 
 efficient_chamfer = False
 

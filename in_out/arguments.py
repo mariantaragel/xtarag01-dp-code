@@ -4,7 +4,7 @@ import pprint
 import os.path as osp
 from datetime import datetime
 from termcolor import colored
-from basics import create_dir
+from .basics import create_dir
 
 
 def str2bool(v):
@@ -87,7 +87,7 @@ def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
     parser.add_argument('--n_pc_points', type=int, default=2**13, help='points per shape')
     parser.add_argument('--encoder_net', type=str, default='pointnet', help='encoding architecture')
     parser.add_argument('--decoder_net', type=str, default='mlp')
-    parser.add_argument('conditional_net', type=str, default='embedding')
+    parser.add_argument('--conditional_net', type=str, default='embedding')
     parser.add_argument('--encoder_conv_layers', type=int, nargs='+', default=[32, 64, 64, 128, 256])
     parser.add_argument('--decoder_fc_neurons', type=int, nargs='+', default=[256, 256, 512])
     parser.add_argument('--num_embeddings', type=int, default=32, help='number of embeddings')

@@ -17,6 +17,7 @@ args = parse_train_test_pc_ae_arguments(save_args=True)
 
 # Prepare pointcloud data.
 datasets, _ = prepare_vanilla_pointcloud_datasets(args)
+exit()
 data_loaders = prepare_pointcloud_dataloaders(datasets, args)
 
 # Make an AE.
