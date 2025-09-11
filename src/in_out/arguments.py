@@ -1,0 +1,199 @@
+import argparse
+import json
+import os.path as osp
+import pprint
+from datetime import datetime
+
+from termcolor import colored
+
+from .basics import create_dir
+
+
+def str2bool(v):
+    """boolean values for argparse"""
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
+def positive_int(value):
+    """
+    Make sure the passed value to argparse is convertible to a positive integer or raise a Type Error.
+    Args:
+        value: the value to be checked
+    Returns: the value converted to an integer
+    Example:
+        parser = argparse.ArgumentParser(...)
+        parser.add_argument('foo', type=positive_int)
+    """
+    int_value = int(value)
+    if int_value <= 0:
+        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+    return int_value
+
+
+def _finish_parsing_args(parser, notebook_options, save_args=False):
+    # Parse arguments
+    if notebook_options is not None:  # Pass options directly
+        args = parser.parse_args(notebook_options)
+    else:
+        args = parser.parse_args()  # Read from command line.
+
+    if args.experiment_tag is not None:
+        args.log_dir = osp.join(args.log_dir, args.experiment_tag)
+
+    if args.use_timestamp:
+        timestamp = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
+        args.log_dir = osp.join(args.log_dir, timestamp)
+
+    if not osp.exists(args.log_dir):
+        create_dir(args.log_dir)
+
+    # pprint them
+    print(colored("\n\nInput arguments:\n\n", "red"))
+
+    args_string = pprint.pformat(vars(args))
+    print(args_string)
+
+    if save_args:
+        out = osp.join(args.log_dir, "config.json.txt")
+        with open(out, "w") as f_out:
+            json.dump(vars(args), f_out, indent=4, sort_keys=True)
+
+    return args
+
+
+def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
+    """Default/Main arguments for training or evaluating a PC based deep AE.
+    :param notebook_options: (optional) list with arguments passed as strings. This can be handy e.g., if you are calling
+        the function inside a jupyter notebook. Else, the arguments will be read by the command line.
+    :param save_args: save cmd arguments to file
+    :return: argparse.ArgumentParser
+    """
+
+    parser = argparse.ArgumentParser(description="train/test a pointcloud-based AE.")
+
+    # Non-optional arguments
+    parser.add_argument(
+        "-log_dir",
+        type=str,
+        required=True,
+        help="where to save training-progress, model, etc.",
+    )
+    parser.add_argument(
+        "-data_dir",
+        type=str,
+        required=True,
+        help="top directory containing pointcloud data",
+    )
+    parser.add_argument(
+        "-split_file",
+        type=str,
+        required=True,
+        help="csv file indicating the split (train/test/val)for each pointcloud datum",
+    )
+
+    # Model parameters
+    parser.add_argument(
+        "--n_pc_points", type=int, default=2**13, help="points per shape"
+    )
+    parser.add_argument(
+        "--encoder_net", type=str, default="pointnet", help="encoding architecture"
+    )
+    parser.add_argument("--decoder_net", type=str, default="mlp")
+    parser.add_argument("--conditional_net", type=str, default="embedding")
+    parser.add_argument(
+        "--encoder_conv_layers", type=int, nargs="+", default=[32, 64, 64, 128, 256]
+    )
+    parser.add_argument(
+        "--decoder_fc_neurons", type=int, nargs="+", default=[256, 256, 512]
+    )
+    parser.add_argument(
+        "--num_embeddings", type=int, default=32, help="number of embeddings"
+    )
+    parser.add_argument(
+        "--embedding_dim", type=int, default=64, help="embedding dimension"
+    )
+
+    # Training parameters
+    parser.add_argument("--do_training", type=str2bool, default=True)
+    parser.add_argument("--init_lr", type=float, default=5e-4)
+    parser.add_argument("--max_train_epochs", type=positive_int, default=350)
+    parser.add_argument(
+        "--loss_function", type=str, default="chamfer", choices=["chamfer", "emd"]
+    )
+    parser.add_argument(
+        "--train_patience",
+        type=int,
+        default=14,
+        help="maximum consecutive epochs where the "
+        "validation loss does not improve "
+        "before we stop training.",
+    )
+    parser.add_argument(
+        "--lr_patience",
+        type=int,
+        default=10,
+        help="maximum waiting of epochs where the validation "
+        "reconstruction e.g., Chamfer loss does not "
+        "improve before we reduce the learning-rate.",
+    )
+    parser.add_argument(
+        "--save_each_epoch",
+        type=str2bool,
+        default=False,
+        help="Save the model at each epoch, "
+        "else will only save the one that "
+        "achieved the minimal per-validation "
+        "split loss.",
+    )
+    parser.add_argument(
+        "--deterministic_point_cloud_sampling",
+        type=str2bool,
+        default=False,
+        help="During training, for any given shape always use the same pointcloud (if True), "
+        " or allow some stochastic variations based on pointcloud sub-sampling. "
+        "Note. for test/val data we use deterministic sub-sampling",
+    )
+
+    # Data related parameters
+    parser.add_argument("--batch_size", type=positive_int, default=32)
+    parser.add_argument("--num_workers", type=int, default=6)
+    parser.add_argument("--restrict_shape_class", type=str, nargs="*", default=[])
+    parser.add_argument(
+        "--scale_in_u_sphere",
+        type=str2bool,
+        default=False,
+        help="feed input pointcloud that are first put into unit-sphere ",
+    )
+
+    # Misc
+    parser.add_argument("--random_seed", type=int, default=42)
+    parser.add_argument("--debug", default=False, type=str2bool)
+    parser.add_argument(
+        "--use_timestamp",
+        default=True,
+        type=str2bool,
+        help="use launch time for logging",
+    )
+    parser.add_argument(
+        "--experiment_tag", type=str, help="will be used to for logging"
+    )
+    parser.add_argument("--gpu_id", type=int, default=0)
+
+    # Testing
+    parser.add_argument("--load_pretrained_model", type=str2bool, default=False)
+    parser.add_argument("--pretrained_model_file", type=str)
+    parser.add_argument("--extract_latent_codes", type=str2bool, default=True)
+
+    args = _finish_parsing_args(parser, notebook_options, save_args)
+    return args
+
+
+if __name__ == "__main__":
+    arguments = parse_train_test_pc_ae_arguments(save_args=True)
