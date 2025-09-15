@@ -23,7 +23,7 @@ datasets, _ = prepare_vanilla_pointcloud_datasets(args)
 data_loaders = prepare_pointcloud_dataloaders(datasets, args)
 
 # Make an AE.
-device = torch.device("cpu")
+device = torch.device("cuda:" + str(args.gpu_id))
 model = describe_pc_ae(args).to(device)
 
 if args.load_pretrained_model:

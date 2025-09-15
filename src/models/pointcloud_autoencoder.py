@@ -60,8 +60,9 @@ class PointcloudAutoencoder(nn.Module):
         latents = []
         self.eval()
         for batch in loader:
-            b_pc = batch["pointcloud"].to(device)
-            latent_b = self.embed(b_pc)
+            b_pc_source = batch["pointcloud_source"].to(device)
+            b_ut = batch["utterances"]
+            latent_b = self.embed(b_pc_source, b_ut)
             latents.append(latent_b.cpu())
         latents = torch.cat(latents).numpy()
         return latents
@@ -110,7 +111,7 @@ class PointcloudAutoencoder(nn.Module):
         loss_meter = AverageMeter()
 
         self.eval()
-        for batch in loader:
+        for index, batch in enumerate(loader):
             b_pc_source = batch["pointcloud_source"].to(device)
             b_pc_target = batch["pointcloud_target"].to(device)
             b_ut = batch["utterances"]

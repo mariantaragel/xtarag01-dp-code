@@ -1,15 +1,23 @@
 import torch
+import warnings
 
-from .nn_distance import chamfer_loss as chamfer_raw
+try:
+    from .ChamferDistancePytorch.chamfer3D import dist_chamfer_3D
+    chamfer_raw = dist_chamfer_3D.chamfer_3DDist()
+    efficient_chamfer = True
+except:
+    raise
+    # warnings.warn('A cuda-based (efficient) chamfer implementation is not installed/found! Using a native pytorch '
+    #               'implementation which was NOT used for the experiments of this paper.')
+    # from .nn_distance import chamfer_loss as chamfer_raw
+    # efficient_chamfer = False
 
-efficient_chamfer = False
 
-
-def chamfer_loss(pc_a, pc_b, swap_axes=False, reduction="mean"):
+def chamfer_loss(pc_a, pc_b, swap_axes=False, reduction='mean'):
     """Compute the chamfer loss for batched pointclouds.
-    :param pc_a: torch.Tensor B x Na-points per point-cloud x 3
-    :param pc_b: torch.Tensor B x Nb-points per point-cloud x 3
-    :return: B floats, indicating the chamfer distances when reduction is mean, else un-reduced distances
+        :param pc_a: torch.Tensor B x Na-points per point-cloud x 3
+        :param pc_b: torch.Tensor B x Nb-points per point-cloud x 3
+        :return: B floats, indicating the chamfer distances when reduction is mean, else un-reduced distances
     """
 
     n_points_a = pc_a.shape[1]
@@ -24,19 +32,17 @@ def chamfer_loss(pc_a, pc_b, swap_axes=False, reduction="mean"):
     else:
         _, dist_a, dist_b = chamfer_raw(pc_a, pc_b)
 
-    if reduction == "mean":
+    if reduction == 'mean':
         # reduce separately, sizes of points can be different
-        dist = ((n_points_a * dist_a) + (dist_b * n_points_b)) / (
-            n_points_a + n_points_b
-        )
+        dist = ((n_points_a * dist_a.mean(1)) + (dist_b.mean(1) * n_points_b)) / (n_points_a + n_points_b)
     elif reduction is None:
         return dist_a, dist_b
     else:
-        raise ValueError("Unknown reduction rule.")
+        raise ValueError('Unknown reduction rule.')
     return dist
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pca = torch.rand(10, 2048, 3).cuda()
     pcb = torch.rand(10, 4096, 3).cuda()
     a, b = chamfer_loss(pca, pcb, reduction=None)

@@ -45,6 +45,6 @@ class Embedding(nn.Module):
 
     def __call__(self, x):
         lookup_tensor = torch.tensor(
-            list(map(self.word_to_idx.get, x)), dtype=torch.long
+            list(map(self.word_to_idx.get, x)), dtype=torch.long, device="cuda:0"
         )
         return self.embedding(lookup_tensor)
