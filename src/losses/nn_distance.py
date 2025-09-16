@@ -14,7 +14,7 @@ def huber_loss(error, delta=1.0):
     """
     abs_error = torch.abs(error)
     quadratic = torch.clamp(abs_error, max=delta)
-    linear = (abs_error - quadratic)
+    linear = abs_error - quadratic
     loss = 0.5 * quadratic**2 + delta * linear
     return loss
 
@@ -34,8 +34,8 @@ def nn_distance(pc1, pc2, l1smooth=False, delta=1.0, l1=False):
     """
     N = pc1.shape[1]
     M = pc2.shape[1]
-    pc1_expand_tile = pc1.unsqueeze(2).repeat(1,1,M,1)
-    pc2_expand_tile = pc2.unsqueeze(1).repeat(1,N,1,1)
+    pc1_expand_tile = pc1.unsqueeze(2).repeat(1, 1, M, 1)
+    pc2_expand_tile = pc2.unsqueeze(1).repeat(1, N, 1, 1)
     pc_diff = pc1_expand_tile - pc2_expand_tile
 
     if l1smooth:
@@ -50,7 +50,7 @@ def nn_distance(pc1, pc2, l1smooth=False, delta=1.0, l1=False):
 
 
 def chamfer_loss(pc_a, pc_b, swap_axes=False, return_separately=True):
-    """ Compute the chamfer loss for batched pointclouds.
+    """Compute the chamfer loss for batched pointclouds.
     :param pc_a: torch.Tensor B x Na-points per point-cloud x 3
     :param pc_b: torch.Tensor B x Nb-points per point-cloud x 3
     :return: B floats, indicating the chamfer distances
@@ -61,7 +61,9 @@ def chamfer_loss(pc_a, pc_b, swap_axes=False, return_separately=True):
         pc_a = pc_a.transpose(-1, -2).contiguous()
         pc_b = pc_b.transpose(-1, -2).contiguous()
     dist_a, _, dist_b, _ = nn_distance(pc_a, pc_b)
-    dist = dist_a.mean(1) + dist_b.mean(1)  # reduce separately, sizes of points can be different
+    dist = dist_a.mean(1) + dist_b.mean(
+        1
+    )  # reduce separately, sizes of points can be different
     if return_separately:
         return dist, dist_a.mean(1), dist_b.mean(1)
     else:

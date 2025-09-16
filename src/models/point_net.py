@@ -3,9 +3,16 @@ import torch.nn.functional as F
 
 
 class PointNet(nn.Module):
-    def __init__(self, init_feat_dim, conv_dims=[64, 64, 128, 128, 1024],
-                 b_norm=True, kernel_size=1, pooling='max',
-                 fc_neurons=None, close_with_bias=True):
+    def __init__(
+        self,
+        init_feat_dim,
+        conv_dims=[64, 64, 128, 128, 1024],
+        b_norm=True,
+        kernel_size=1,
+        pooling="max",
+        fc_neurons=None,
+        close_with_bias=True,
+    ):
         super(PointNet, self).__init__()
         ops = []
         previous_dim = init_feat_dim
@@ -40,7 +47,7 @@ class PointNet(nn.Module):
         out = self.pre_pooling_feature(x)
 
         if self.pooling is not None:
-            if self.pooling == 'max':
+            if self.pooling == "max":
                 out = F.max_pool1d(out, kernel_size=out.shape[-1]).squeeze_(-1)
 
         if self.fc_feature is not None:

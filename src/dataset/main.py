@@ -1,30 +1,30 @@
-import trimesh
 import json
-import numpy as np
-from scipy.spatial import cKDTree
-import random
 import os
+import random
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
+import trimesh
+from scipy.spatial import cKDTree
 
 NUMBER_OF_TOOTH_TO_REMOVE = 5
 NUMBER_OF_POINTS = 8192
 NUMBER_OF_MESHES = 150
+
 
 def downsample_vertices(points, n_samples):
     replace = False
     if n_samples > len(points):
         replace = True
     idx = np.random.choice(len(points), n_samples, replace=replace)
-    
+
     return points[idx]
 
-if __name__ == "__main__":
-    meshes = []
-    for root, dirs, files in os.walk("../data/Orthodontic_dental_dataset/", topdown=True):
-        meshes += [os.path.join(root, f) for f in files if f.endswith(".stl")]
 
-    meshes = random.sample(meshes, NUMBER_OF_MESHES)
+if __name__ == "__main__":
+    path = "/home/marian/DP/data/Orthodontic_dental_dataset/"
+    meshes = [f.path for f in os.scandir(path) if f.is_dir()]
 
     source_file_names = []
     target_file_names = []
@@ -44,7 +44,9 @@ if __name__ == "__main__":
             teeth = list(mesh_data["segmentation"].keys())
             teeth = random.sample(teeth, NUMBER_OF_TOOTH_TO_REMOVE)
             for tooth_index, tooth in enumerate(teeth):
-                vertices_to_remove = np.array(mesh_data["segmentation"][tooth]["vertices"])
+                vertices_to_remove = np.array(
+                    mesh_data["segmentation"][tooth]["vertices"]
+                )
                 tree = cKDTree(mesh.vertices)
                 distances, indices = tree.query(vertices_to_remove, k=1)
 
@@ -55,10 +57,12 @@ if __name__ == "__main__":
                 new_mesh.update_vertices(mask)
 
                 source_vertices = downsample_vertices(mesh.vertices, NUMBER_OF_POINTS)
-                target_vertices = downsample_vertices(new_mesh.vertices, NUMBER_OF_POINTS)
+                target_vertices = downsample_vertices(
+                    new_mesh.vertices, NUMBER_OF_POINTS
+                )
 
                 index = mesh_index * NUMBER_OF_TOOTH_TO_REMOVE + tooth_index
-                file_name_prefix = f"../small-dataset-1"
+                file_name_prefix = "../small-dataset-1"
                 Path(file_name_prefix + f"/{index}").mkdir(parents=True, exist_ok=True)
 
                 source_file_name = f"/{index}/{orig_index}_{orig_name}_source.npz"
@@ -66,8 +70,12 @@ if __name__ == "__main__":
                 utterance = f"remove tooth {tooth}"
                 object_class = "dentition"
 
-                np.savez_compressed(file_name_prefix + source_file_name, pointcloud=source_vertices)
-                np.savez_compressed(file_name_prefix + target_file_name, pointcloud=target_vertices)
+                np.savez_compressed(
+                    file_name_prefix + source_file_name, pointcloud=source_vertices
+                )
+                np.savez_compressed(
+                    file_name_prefix + target_file_name, pointcloud=target_vertices
+                )
 
                 source_file_names.append(source_file_name)
                 target_file_names.append(target_file_name)
@@ -82,15 +90,19 @@ if __name__ == "__main__":
     mask2 = (rnd_numbers > 70) & (rnd_numbers <= 85)
     mask3 = rnd_numbers > 85
 
-    splits = np.empty(rnd_numbers.shape, dtype='<U5')
+    splits = np.empty(rnd_numbers.shape, dtype="<U5")
     splits[mask1] = "train"
     splits[mask2] = "test"
     splits[mask3] = "val"
 
-    df = pd.DataFrame({"split": splits,
-                       "source_file_name": source_file_names,
-                       "target_file_name": target_file_names,
-                       "utterance": utterances,
-                       "object_class": object_classes})
+    df = pd.DataFrame(
+        {
+            "split": splits,
+            "source_file_name": source_file_names,
+            "target_file_name": target_file_names,
+            "utterance": utterances,
+            "object_class": object_classes,
+        }
+    )
 
     df.to_csv("../split.csv", index=False)

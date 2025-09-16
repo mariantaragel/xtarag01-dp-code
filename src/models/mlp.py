@@ -3,11 +3,12 @@ Originally created at 2019, (updated on January 2020) for Python 3.x
 2020 Panos Achlioptas (pachlioptas@gmail.com) & Stanford Geometric Computing Lab
 """
 
-from torch import nn
 import numpy as np
+from torch import nn
+
 
 def optional_repeat(value, times):
-    """ helper function, to repeat a parameter's value many times
+    """helper function, to repeat a parameter's value many times
     :param value: an single basic python type (int, float, boolean, string), or a list with length equals to times
     :param times: int, how many times to repeat
     :return: a list with length equal to times
@@ -16,7 +17,9 @@ def optional_repeat(value, times):
         value = [value]
 
     if len(value) != 1 and len(value) != times:
-        raise ValueError('The value should be a singleton, or be a list with times length.')
+        raise ValueError(
+            "The value should be a singleton, or be a list with times length."
+        )
 
     if len(value) == times:
         return value  # do nothing
@@ -25,11 +28,20 @@ def optional_repeat(value, times):
 
 
 class MLP(nn.Module):
-    """ Multi-near perceptron. That is a k-layer deep network where each layer is a fully-connected layer, with
+    """Multi-near perceptron. That is a k-layer deep network where each layer is a fully-connected layer, with
     (optionally) batch-norm, a non-linearity and dropout. The last layer (output) is always a 'pure' linear function.
     """
-    def __init__(self, in_feat_dims, out_channels, b_norm=True, dropout_rate=0,
-                 non_linearity=nn.ReLU(inplace=True), closure=None, remove_final_bias=False):
+
+    def __init__(
+        self,
+        in_feat_dims,
+        out_channels,
+        b_norm=True,
+        dropout_rate=0,
+        non_linearity=nn.ReLU(inplace=True),
+        closure=None,
+        remove_final_bias=False,
+    ):
         """Constructor
         :param in_feat_dims: input feature dimensions
         :param out_channels: list of ints describing each the number hidden/final neurons. The
@@ -41,8 +53,8 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
 
         n_layers = len(out_channels)
-        dropout_rate = optional_repeat(dropout_rate, n_layers-1)
-        b_norm = optional_repeat(b_norm, n_layers-1)
+        dropout_rate = optional_repeat(dropout_rate, n_layers - 1)
+        b_norm = optional_repeat(b_norm, n_layers - 1)
 
         previous_feat_dim = in_feat_dims
         all_ops = []
@@ -50,7 +62,7 @@ class MLP(nn.Module):
         for depth in range(len(out_channels)):
             out_dim = out_channels[depth]
 
-            if depth == len(out_channels) -1:  # final (pre-closure) layer
+            if depth == len(out_channels) - 1:  # final (pre-closure) layer
                 if remove_final_bias:
                     affine_op = nn.Linear(previous_feat_dim, out_dim, bias=False)
                 else:

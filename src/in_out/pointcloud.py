@@ -22,40 +22,35 @@ from utils.basics import parallel_apply
 class PointcloudDataset(Dataset):
     def __init__(
         self,
-        pointclouds_source,
-        pointclouds_target,
-        utterances,
+        pointclouds,
         part_masks=None,
         model_classes=None,
         model_metadata=None,
         pc_transform=None,
     ):
         """
+        :param pointclouds: iterable of N point-clouds, each being K x 3 points (floats). Typically, this is
+         a numpy-array (or a list of size N).
         :param part_masks: part-labels for each provided point of each pointcloud. Assumes same order as
         `pointlouds`.
         :param model_metadata: pandas dataframe storing metadata indicating e.g., the names/classes of the provided
         point-clouds.
         """
         super(PointcloudDataset, self).__init__()
-        self.pointclouds_source = pointclouds_source
-        self.pointclouds_target = pointclouds_target
-        self.utterances = utterances
+        self.pointclouds = pointclouds
         self.part_masks = part_masks
         self.model_classes = model_classes
         self.model_metadata = model_metadata
         self.pc_transform = pc_transform
 
     def __len__(self):
-        return len(self.pointclouds_source)
+        return len(self.pointclouds)
 
     def __getitem__(self, index):
-        pc_s = self.pointclouds_source[index]
-        pc_t = self.pointclouds_target[index]
-        ut = self.utterances[index]
+        pc = self.pointclouds[index]
 
         if self.pc_transform is not None:
-            pc_s = self.pc_transform(pc_s)
-            pc_t = self.pc_transform(pc_t)
+            pc = self.pc_transform(pc)
 
         part_mask = []
         if self.part_masks is not None:
@@ -70,9 +65,7 @@ class PointcloudDataset(Dataset):
             model_metadata = self.model_metadata.iloc[index].to_dict()
 
         return {
-            "pointcloud_source": pc_s,
-            "pointcloud_target": pc_t,
-            "utterances": ut,
+            "pointcloud": pc,
             "part_mask": part_mask,
             "model_class": model_class,
             "model_metadata": model_metadata,
@@ -153,13 +146,9 @@ def prepare_vanilla_pointcloud_datasets(args):
         )
         split_df.reset_index(inplace=True, drop=True)
 
-    split_df["source_file_name"] = args.data_dir + split_df["source_file_name"]
-    split_df["target_file_name"] = args.data_dir + split_df["target_file_name"]
+    split_df["file_name"] = args.data_dir + split_df["file_name"]
 
-    assert split_df["source_file_name"].apply(osp.exists).all(), (
-        "files/models in the split file should exist on the hard drive!"
-    )
-    assert split_df["target_file_name"].apply(osp.exists).all(), (
+    assert split_df["file_name"].apply(osp.exists).all(), (
         "files/models in the split file should exist on the hard drive!"
     )
 
@@ -188,17 +177,11 @@ def prepare_vanilla_pointcloud_datasets(args):
     for split in ["train", "test", "val"]:
         split_data = split_df[split_df.split == split].copy()
         split_data.reset_index(drop=True, inplace=True)
-        split_pcs_source = np.array(
+        split_pcs = np.array(
             parallel_apply(
-                split_data.source_file_name, partial(pc_loader_from_npz, only_pc=True)
+                split_data.file_name, partial(pc_loader_from_npz, only_pc=True)
             )
         )
-        split_pcs_target = np.array(
-            parallel_apply(
-                split_data.target_file_name, partial(pc_loader_from_npz, only_pc=True)
-            )
-        )
-        split_utterances = np.array(split_data.utterance)
         pc_sampling_random_seed = None
         if args.deterministic_point_cloud_sampling or split in ["test", "val"]:
             pc_sampling_random_seed = args.random_seed
@@ -208,9 +191,7 @@ def prepare_vanilla_pointcloud_datasets(args):
             scale_in_u_sphere = True
 
         dataset = PointcloudDataset(
-            pointclouds_source=split_pcs_source,
-            pointclouds_target=split_pcs_target,
-            utterances=split_utterances,
+            pointclouds=split_pcs,
             model_classes=split_data.object_class_int,
             model_metadata=split_data,
             pc_transform=partial(
