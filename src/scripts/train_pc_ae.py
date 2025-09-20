@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 import torch
 import tqdm
+import wandb
 from torch import optim
 
 from in_out.arguments import parse_train_test_pc_ae_arguments
@@ -25,6 +26,8 @@ data_loaders = prepare_pointcloud_dataloaders(datasets, args)
 # Make an AE.
 device = torch.device("cuda:" + str(args.gpu_id))
 model = describe_pc_ae(args).to(device)
+
+wandb.login(key="d82cb78d19b6bb6e39d3f99f150c6bec08610567")
 
 if args.load_pretrained_model:
     best_epoch = load_state_dicts(args.pretrained_model_file, model=model)
@@ -49,42 +52,50 @@ if args.do_training:
     min_val_loss = np.inf
     val_not_improved = 0
 
-    for epoch in tqdm.tqdm(range(start_epoch, start_epoch + args.max_train_epochs)):
-        np.random.seed()
-        train_loss = model.train_for_one_epoch(
-            data_loaders["train"], optimizer, device=device
-        )
-        val_loss = model.reconstruct(data_loaders["val"], device=device)[-1]
-        lr_scheduler.step(val_loss)
+    with wandb.init(project="Test Project", config=args) as run:
+        run.watch(model, log_freq=100)
 
-        test_recons, _, test_loss = model.reconstruct(
-            data_loaders["test"], device=device
-        )
-        print(
-            "{}, {:.6f}, {:.6f}, {:.6f}".format(epoch, train_loss, test_loss, val_loss),
-            end=" ",
-        )
-
-        if val_loss < min_val_loss:
-            print("* validation loss improved *")
-            min_val_loss = val_loss
-            save_state_dicts(
-                save_new_model_file,
-                epoch=epoch,
-                model=model,
-                optimizer=optimizer,
-                lr_scheduler=lr_scheduler,
+        for epoch in tqdm.tqdm(range(start_epoch, start_epoch + args.max_train_epochs)):
+            np.random.seed()
+            train_loss = model.train_for_one_epoch(
+                data_loaders["train"], optimizer, device=device
             )
-            val_not_improved = 0
-        else:
-            val_not_improved += 1
-            if val_not_improved == args.train_patience:
-                print(
-                    f"Validation loss did not improve for {val_not_improved} consecutive epochs. Training is "
-                    f"stopped."
+            val_loss = model.reconstruct(data_loaders["val"], device=device)[-1]
+            lr_scheduler.step(val_loss)
+
+            test_recons, _, test_loss = model.reconstruct(
+                data_loaders["test"], device=device
+            )
+            print(
+                "{}, {:.6f}, {:.6f}, {:.6f}".format(
+                    epoch, train_loss, test_loss, val_loss
+                ),
+                end=" ",
+            )
+            run.log(
+                {"train_loss": train_loss, "test_loss": test_loss, "val_loss": val_loss}
+            )
+
+            if val_loss < min_val_loss:
+                print("* validation loss improved *")
+                min_val_loss = val_loss
+                save_state_dicts(
+                    save_new_model_file,
+                    epoch=epoch,
+                    model=model,
+                    optimizer=optimizer,
+                    lr_scheduler=lr_scheduler,
                 )
-                break
-            print()
+                val_not_improved = 0
+            else:
+                val_not_improved += 1
+                if val_not_improved == args.train_patience:
+                    print(
+                        f"Validation loss did not improve for {val_not_improved} consecutive epochs. Training is "
+                        f"stopped."
+                    )
+                    break
+                print()
 
     # Load model with best per-validation loss.
     best_epoch = load_state_dicts(osp.join(args.log_dir, model_name), model=model)
@@ -95,6 +106,8 @@ if args.do_training:
             data_loaders[split], device=device
         )
         print(split, loss)
+
+    wandb.finish()
 
 
 # Extracting latent codes of the above trained system.
