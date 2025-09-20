@@ -4,8 +4,6 @@ import os.path as osp
 import pprint
 from datetime import datetime
 
-from termcolor import colored
-
 from .basics import create_dir
 
 
@@ -54,8 +52,7 @@ def _finish_parsing_args(parser, notebook_options, save_args=False):
     if not osp.exists(args.log_dir):
         create_dir(args.log_dir)
 
-    # pprint them
-    print(colored("\n\nInput arguments:\n\n", "red"))
+    print("\nInput arguments:\n\n")
 
     args_string = pprint.pformat(vars(args))
     print(args_string)
