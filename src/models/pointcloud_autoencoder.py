@@ -95,6 +95,7 @@ class PointcloudAutoencoder(nn.Module):
         :param device: cpu? cuda?
         """
 
+        inputs = []
         reconstructions = []
         losses_per_example = []
         loss_meter = AverageMeter()
@@ -111,9 +112,10 @@ class PointcloudAutoencoder(nn.Module):
             else:
                 raise NotImplementedError()
             losses_per_example.extend(loss.cpu())
-            reconstructions.append(recon.cpu())
+            reconstructions.append(recon.cpu().numpy())
+            inputs.append(b_pc.cpu().numpy())
             loss_meter.update(loss.mean().item(), len(b_pc))
 
-        reconstructions = torch.cat(reconstructions).numpy()
+        reconstructions = reconstructions
         losses_per_example = torch.stack(losses_per_example).numpy()
-        return reconstructions, losses_per_example, loss_meter.avg
+        return reconstructions, inputs, losses_per_example, loss_meter.avg

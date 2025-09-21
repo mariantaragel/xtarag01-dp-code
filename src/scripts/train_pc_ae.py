@@ -27,8 +27,6 @@ data_loaders = prepare_pointcloud_dataloaders(datasets, args)
 device = torch.device("cuda:" + str(args.gpu_id))
 model = describe_pc_ae(args).to(device)
 
-wandb.login(key="d82cb78d19b6bb6e39d3f99f150c6bec08610567")
-
 if args.load_pretrained_model:
     best_epoch = load_state_dicts(args.pretrained_model_file, model=model)
     print("Loading pretrained model @epoch", best_epoch)
@@ -63,7 +61,7 @@ if args.do_training:
             val_loss = model.reconstruct(data_loaders["val"], device=device)[-1]
             lr_scheduler.step(val_loss)
 
-            test_recons, _, test_loss = model.reconstruct(
+            test_recons, _, _, test_loss = model.reconstruct(
                 data_loaders["test"], device=device
             )
             print(
@@ -97,15 +95,17 @@ if args.do_training:
                     break
                 print()
 
-    # Load model with best per-validation loss.
-    best_epoch = load_state_dicts(osp.join(args.log_dir, model_name), model=model)
-    print("per-validation optimal epoch", best_epoch)
-    print("losses at this epoch:", best_epoch)
-    for split in ["train", "val", "test"]:
-        reconstructions, losses_per_example, loss = model.reconstruct(
-            data_loaders[split], device=device
-        )
-        print(split, loss)
+        # Load model with best per-validation loss.
+        best_epoch = load_state_dicts(osp.join(args.log_dir, model_name), model=model)
+        print("per-validation optimal epoch", best_epoch)
+        print("losses at this epoch:", best_epoch)
+        for split in ["train", "val", "test"]:
+            reconstructions, inputs, losses_per_example, loss = model.reconstruct(
+                data_loaders[split], device=device
+            )
+            if split == "test":
+                run.log({"pc_ae_input": wandb.Object3D(np.array(inputs[0][0])), "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][0]))})
+            print(split, loss)
 
     wandb.finish()
 

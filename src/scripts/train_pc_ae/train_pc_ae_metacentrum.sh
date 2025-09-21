@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -N pc_ae_train_test_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=6:mem=16gb:ngpus=1:scratch_local=16gb
-#PBS -l walltime=2:00:00
+#PBS -l select=1:ncpus=4:mem=8gb:ngpus=1:scratch_local=10gb
+#PBS -l walltime=0:30:00
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
@@ -15,11 +15,13 @@ LOG_DIR=../../log
 
 random_seed=42
 gpu_id=0
-num_workers=6
+num_workers=4
 encoder_net=pointnet
 decoder_net=mlp
 n_pc_points=4096
 batch_size=32
+
+export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 
 echo "Creating env..."
 
@@ -29,7 +31,7 @@ cp -r $DATA_DIR .
 
 trap 'clean_scratch' TERM EXIT
 
-export PYTHONPATH=$HOME/.local/lib/python3.12/site-packages:$PYTHONPATH
+export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
 
 cd xtarag01-dp-code/src
 
