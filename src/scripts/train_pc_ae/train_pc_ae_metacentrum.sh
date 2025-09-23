@@ -16,7 +16,7 @@ LOG_DIR=../../log
 ENCODER_NET=pointnet
 DECODER_NET=mlp
 BATCH_SIZE=32
-N_PC_POINTS=4096
+N_PC_POINTS=2048
 RANDOM_SEED=42
 SCALE=True
 GPU_ID=0
@@ -48,7 +48,7 @@ singularity exec --nv \
         --encoder_net $ENCODER_NET \
         --decoder_net $DECODER_NET \
         --batch_size $BATCH_SIZE \
-        --n_pc_points $n_pc_points \
+        --n_pc_points $N_PC_POINTS \
         --random_seed $RANDOM_SEED \
         --scale_in_u_sphere $SCALE \
         --gpu_id $GPU_ID \

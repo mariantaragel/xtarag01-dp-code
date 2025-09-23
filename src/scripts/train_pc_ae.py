@@ -104,8 +104,8 @@ if args.do_training:
                 data_loaders[split], device=device
             )
             if split == "test":
-                run.log({"pc_ae_input": wandb.Object3D(np.array(inputs[0][0])), "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][0]))})
-                run.log({"pc_ae_input": wandb.Object3D(np.array(inputs[0][1])), "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][1]))})
+                run.log({"pc_ae_input_0": wandb.Object3D(np.array(inputs[0][0])), "pc_ae_output_0": wandb.Object3D(np.array(reconstructions[0][0]))})
+                run.log({"pc_ae_input_1": wandb.Object3D(np.array(inputs[0][4])), "pc_ae_output_1": wandb.Object3D(np.array(reconstructions[0][4]))})
             print(split, loss)
 
     wandb.finish()
