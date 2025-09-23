@@ -28,10 +28,7 @@ def remove_tooth(mesh_file, tooth, index):
     with open(json_file, "r") as f:
         mesh_data = json.load(f)
 
-        if tooth in mesh_data["segmentation"].keys():
-            vertices_to_remove = np.array(mesh_data["segmentation"][tooth]["vertices"])
-        else:
-            return
+        vertices_to_remove = np.array(mesh_data["segmentation"][tooth]["vertices"])
         tree = cKDTree(mesh.vertices)
         distances, indices = tree.query(vertices_to_remove, k=1)
 
@@ -44,7 +41,7 @@ def remove_tooth(mesh_file, tooth, index):
         source_vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
         target_vertices = downsample_vertices(new_mesh.vertices, N_PC_POINTS)
 
-        file_name_prefix = "/home/marian/DP/removed-front-teeth/point-clouds"
+        file_name_prefix = "/home/marian/DP/removed-front-teeth-v2/point-clouds"
         Path(file_name_prefix + f"/{index}").mkdir(parents=True, exist_ok=True)
 
         orig_file_name_parts = mesh_file[:-4].split("/")
@@ -67,14 +64,14 @@ def remove_tooth(mesh_file, tooth, index):
         elif "L" in orig_name:
             object_class = "lower_jaw"
 
-        return source_file_name, target_file_name, utterance, object_class, orig_index
+    return source_file_name, target_file_name, utterance, object_class, orig_index
 
 
 if __name__ == "__main__":
     path = "/home/marian/DP/data/Orthodontic_dental_dataset/"
-    meshes = [f.path for f in os.scandir(path) if f.is_dir()][:150]
+    meshes = [f.path for f in os.scandir(path) if f.is_dir()][:300]
 
-    with open("/home/marian/DP/data/train-test-split.json", "r") as f:
+    with open("../../../data/train-test-split.json", "r") as f:
         split_data = json.load(f)
     train_indices = split_data["train"]
     other_indices = split_data["test"]
@@ -94,6 +91,8 @@ if __name__ == "__main__":
         mesh_final = mesh_folder + "/final/U_Final.stl"
         if mesh_folder == "/home/marian/DP/data/Orthodontic_dental_dataset/0903":
             continue
+        if mesh_folder == "/home/marian/DP/data/Orthodontic_dental_dataset/0584":
+            continue
         for mesh_file in [mesh_ori, mesh_final]:
             for tooth in ["11", "21"]:
                 source_uid, target_uid, utterance, object_class, orig_index = (
@@ -110,6 +109,9 @@ if __name__ == "__main__":
                     splits.append("test")
                 elif orig_index in val_indices:
                     splits.append("val")
+                else:
+                    print("here")
+                    splits.append("unassigned")
 
     df = pd.DataFrame(
         {
@@ -124,6 +126,6 @@ if __name__ == "__main__":
         }
     )
 
-    split_folder = "/home/marian/DP/removed-front-teeth/splits"
+    split_folder = "/home/marian/DP/removed-front-teeth-v2/splits"
     Path(split_folder).mkdir(parents=True, exist_ok=True)
     df.to_csv(f"{split_folder}/removed-front-teeth-split.csv", index=False)
