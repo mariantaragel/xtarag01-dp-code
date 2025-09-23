@@ -185,5 +185,77 @@ def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
     return args
 
 
+def parse_train_test_latent_listener_arguments(notebook_options=None, save_args=True):
+    """Default/Main arguments for training or evaluating a neural (latent-based) listener.
+    :param notebook_options: (optional) list with arguments passed as strings. This can be handy e.g., if you are calling
+        the function inside a jupyter notebook. Else, the arguments will be read by the command line.
+    :return: argparse.ArgumentParser
+    """
+
+    parser = argparse.ArgumentParser(description="train/test latent neural listener")
+
+    # Non-optional arguments
+    parser.add_argument(
+        "-shape_talk_file", type=str, required=True, help="referential language data"
+    )
+    parser.add_argument("-vocab_file", type=str, required=True, help="vocabulary file")
+    parser.add_argument(
+        "-latent_codes_file",
+        type=str,
+        required=True,
+        help="shape_uid_to_latent_code dictionary",
+    )
+
+    # Dataset oriented
+    parser.add_argument("--restrict_shape_class", type=str, nargs="*", default=[])
+    parser.add_argument("--add_shape_glot", type=str2bool, default=False)
+
+    # Listening-model parameters
+    parser.add_argument(
+        "--listening_model",
+        type=str,
+        default="ablation_model_one",
+        help="ablation_model_one is transformer-basedablation_model_two is lstm-based",
+    )
+
+    # Training parameters
+    parser.add_argument("--do_training", type=str2bool, default=True)
+    parser.add_argument("--init_lr", type=float, default=5e-4)
+    parser.add_argument("--max_train_epochs", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=2048)
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--train_patience", type=int, default=15)
+    parser.add_argument("--lr_patience", type=int, default=8)
+    parser.add_argument("--weight_decay", type=float, default=0.001)
+
+    # Testing only/explicit parameters
+    parser.add_argument("--save_analysis_results", type=str2bool, default=True)
+
+    # Misc
+    parser.add_argument(
+        "--pretrained_model_file",
+        type=str,
+        help="if provided, the underlying pre-trained listener "
+        "will be loaded before new training, etc. happens",
+    )
+    parser.add_argument(
+        "--log_dir", type=str, default="./logs", help="where to save checkpoints, etc."
+    )
+    parser.add_argument("--random_seed", type=int, default=2022)
+    parser.add_argument(
+        "--use_timestamp",
+        default=True,
+        type=str2bool,
+        help="use launch time for logging",
+    )
+    parser.add_argument(
+        "--experiment_tag", type=str, help="will be used to for logging"
+    )
+    parser.add_argument("--gpu_id", type=int, default=0)
+
+    args = _finish_parsing_args(parser, notebook_options, save_args)
+    return args
+
+
 if __name__ == "__main__":
     arguments = parse_train_test_pc_ae_arguments(save_args=True)
