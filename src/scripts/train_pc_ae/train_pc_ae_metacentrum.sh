@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -N pc_ae_train_test_job
+#PBS -N train_pc_ae_job
 #PBS -q gpu
 #PBS -l select=1:ncpus=4:mem=8gb:ngpus=1:scratch_local=10gb
 #PBS -l walltime=0:30:00
@@ -7,19 +7,20 @@
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
 PROJEKT_DIR="$HOME_DIR/xtarag01-dp-code"
-DATA_DIR="$HOME_DIR/removed-front-teeth"
+DATA_DIR="$HOME_DIR/removed-front-teeth-v2"
 
-SPLIT_FILE=../../removed-front-teeth/splits/unary-split.csv
-PC_TOP_DIR=../../removed-front-teeth/point-clouds
+SPLIT_FILE=../../removed-front-teeth-v2/splits/unary-split.csv
+PC_TOP_DIR=../../removed-front-teeth-v2/point-clouds
 LOG_DIR=../../log
 
-random_seed=42
-gpu_id=0
-num_workers=4
-encoder_net=pointnet
-decoder_net=mlp
-n_pc_points=4096
-batch_size=32
+ENCODER_NET=pointnet
+DECODER_NET=mlp
+BATCH_SIZE=32
+N_PC_POINTS=4096
+RANDOM_SEED=42
+SCALE=True
+GPU_ID=0
+NUM_WORKERS=4
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 
@@ -44,14 +45,15 @@ singularity exec --nv \
         -log_dir $LOG_DIR \
         -data_dir $PC_TOP_DIR \
         -split_file $SPLIT_FILE \
-        --encoder_net $encoder_net \
-        --decoder_net $decoder_net \
-        --batch_size $batch_size \
+        --encoder_net $ENCODER_NET \
+        --decoder_net $DECODER_NET \
+        --batch_size $BATCH_SIZE \
         --n_pc_points $n_pc_points \
-        --random_seed $random_seed \
-        --gpu_id $gpu_id \
-        --num_workers $num_workers
+        --random_seed $RANDOM_SEED \
+        --scale_in_u_sphere $SCALE \
+        --gpu_id $GPU_ID \
+        --num_workers $NUM_WORKERS
 
 echo "Cloning resluts ..."
 
-cp -r $LOG_DIR "$HOME_DIR/vysledky_trenovania"
+cp -r $LOG_DIR "$HOME_DIR/results"

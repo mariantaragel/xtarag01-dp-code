@@ -50,7 +50,7 @@ if args.do_training:
     min_val_loss = np.inf
     val_not_improved = 0
 
-    with wandb.init(project="Test Project", config=args) as run:
+    with wandb.init(project="Train PC AE", config=args) as run:
         run.watch(model, log_freq=100)
 
         for epoch in tqdm.tqdm(range(start_epoch, start_epoch + args.max_train_epochs)):
@@ -105,6 +105,7 @@ if args.do_training:
             )
             if split == "test":
                 run.log({"pc_ae_input": wandb.Object3D(np.array(inputs[0][0])), "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][0]))})
+                run.log({"pc_ae_input": wandb.Object3D(np.array(inputs[0][1])), "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][1]))})
             print(split, loss)
 
     wandb.finish()
