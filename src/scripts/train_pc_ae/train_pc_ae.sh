@@ -6,17 +6,18 @@
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
-PROJEKT_DIR="$HOME_DIR/xtarag01-dp-code"
+PROJECT_DIR="$HOME_DIR/xtarag01-dp-code"
 DATA_DIR="$HOME_DIR/removed-front-teeth-v2"
 
 SPLIT_FILE=../../removed-front-teeth-v2/splits/unary-split.csv
 PC_TOP_DIR=../../removed-front-teeth-v2/point-clouds
-LOG_DIR=../../log
+LOG_DIR=../../log_pc_ae
 
 ENCODER_NET=pointnet
 DECODER_NET=mlp
+LOSS=chamfer
 BATCH_SIZE=32
-N_PC_POINTS=2048
+N_PC_POINTS=4096
 RANDOM_SEED=42
 SCALE=True
 GPU_ID=0
@@ -27,7 +28,7 @@ export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 echo "Creating env..."
 
 cd $SCRATCHDIR
-cp -r $PROJEKT_DIR .
+cp -r $PROJECT_DIR .
 cp -r $DATA_DIR .
 
 trap 'clean_scratch' TERM EXIT
@@ -51,6 +52,7 @@ singularity exec --nv \
         --n_pc_points $N_PC_POINTS \
         --random_seed $RANDOM_SEED \
         --scale_in_u_sphere $SCALE \
+        --loss_function $LOSS \
         --gpu_id $GPU_ID \
         --num_workers $NUM_WORKERS
 

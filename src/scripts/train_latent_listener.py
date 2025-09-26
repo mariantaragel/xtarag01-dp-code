@@ -44,8 +44,8 @@ df = pd.read_csv(args.shape_talk_file)
 df.tokens_encoded = df.tokens_encoded.apply(literal_eval)
 vocab = Vocabulary.load(args.vocab_file)
 
-if args.add_shape_glot:
-    raise ValueError("left out of public code")
+# if args.add_shape_glot:
+#     raise ValueError("left out of public code")
 #     from changeit3d.in_out.datasets.shape_talk import add_sg_to_snt
 #     df = add_sg_to_snt(df, vocab, args.split_file)
 

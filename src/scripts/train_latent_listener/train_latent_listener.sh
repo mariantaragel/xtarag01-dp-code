@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N train_latent_listener_job
-#PBS -q gpu
-#PBS -l select=1:ncpus=4:mem=8gb:ngpus=1:scratch_local=10gb
+#PBS -q interactive
+#PBS -l select=1:ncpus=4:mem=8gb:ngpus=0:scratch_local=10gb
 #PBS -l walltime=0:30:00
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
@@ -11,114 +11,41 @@ DATA_DIR="$HOME_DIR/removed-front-teeth-v2"
 
 SPLIT_FILE=../../removed-front-teeth-v2/splits/removed-front-teeth-split.csv
 PC_TOP_DIR=../../removed-front-teeth-v2/point-clouds
-SPLIT_FILE=../../removed-front-teeth-v2/splits/unary-split.csv
 VOCAB_FILE=../../removed-front-teeth-v2/vocabulary/vocabulary.pkl
-LOG_DIR=../../log
+LOG_DIR=../../log_listener
+LATENTS=$HOME_DIR/pretrained/shape_latents/latent_codes.pkl
 
 RANDOM_SEED=42
 GPU_ID=0
 
-## 1. PC-AE, trained with pointclouds scaled to be aligned with rendering images
-latents=$PC_TOP_DIR/pretrained/shape_latents/pcae_latent_codes.pkl
-log_dir=$LOG_DIR/latent_pcae_based
+export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 
-if false
-then
-  python $script_file\
-   -latent_codes_file $latents\
-   -shape_talk_file $shape_talk_file\
-   -vocab_file $vocab_file\
-   --log_dir $log_dir\
-   --use_timestamp False\
-   --random_seed $random_seed\
-   --gpu $gpu_id
-fi
+echo "Creating env..."
 
-## 2. SGF based (gradient) latents
-latents=$top_data_dir/pretrained/shape_latents/sgf_latent_codes.pkl
-log_dir=$top_log_dir/latent_sgf_based
+cd $SCRATCHDIR
+cp -r $PROJECT_DIR .
+cp -r $DATA_DIR .
 
-if false
-then
-  python $script_file\
-   -latent_codes_file $latents\
-   -shape_talk_file $shape_talk_file\
-   -vocab_file $vocab_file\
-   --log_dir $log_dir\
-   --use_timestamp False\
-   --random_seed $random_seed\
-   --gpu $gpu_id
-fi
+trap 'clean_scratch' TERM EXIT
 
-## 3. ImNet based (implicit) latents
-latents=$top_data_dir/pretrained/shape_latents/imnet_latent_codes.pkl
-log_dir=$top_log_dir/latent_imnet_based_scaled
+export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
 
-if false
-then
-  python $script_file\
-   -latent_codes_file $latents\
-   -shape_talk_file $shape_talk_file\
-   -vocab_file $vocab_file\
-   --log_dir $log_dir\
-   --use_timestamp False\
-   --random_seed $random_seed\
-   --gpu $gpu_id
-fi
+cd xtarag01-dp-code/src
 
+echo "Starting training..."
 
-## 4. ResNet34/101 based (image) latents
-# we increase the weight-decay for these, since these are 512D (or 2048D) instead of 256D
-resnet=101
-latents=$top_data_dir/pretrained/shape_latents/resnet"$resnet"_latent_codes.pkl
-log_dir=$top_log_dir/latent_resnet"$resnet"_based
+singularity exec --nv \
+    -B $SCRATCHDIR:/scratch \
+    $CONTAINER \
+    python3 -m scripts.train_latent_listener \
+        -latent_codes_file $LATENTS\
+        -shape_talk_file $SPLIT_FILE\
+        -vocab_file $VOCAB_FILE\
+        --log_dir $LOG_DIR\
+        --use_timestamp False\
+        --random_seed $RANDOM_SEED\
+        --gpu $GPU_ID
 
-if false
-then
-  python $script_file\
-   -latent_codes_file $latents\
-   -shape_talk_file $shape_talk_file\
-   -vocab_file $vocab_file\
-   --log_dir $log_dir\
-   --use_timestamp False\
-   --random_seed $random_seed\
-   --gpu $gpu_id\
-   --weight_decay 0.005
-fi
+echo "Cloning resluts ..."
 
-
-## 5. OpenAI CLIP
-latents=$top_data_dir/pretrained/shape_latents/openai_clip-vit-large-patch14_latent_codes.pkl
-log_dir=$top_log_dir/latent_openai_clip-vit-large-patch14_based
-
-if true
-then
-  python $script_file\
-   -latent_codes_file $latents\
-   -shape_talk_file $shape_talk_file\
-   -vocab_file $vocab_file\
-   --log_dir $log_dir\
-   --use_timestamp False\
-   --random_seed $random_seed\
-   --gpu $gpu_id\
-   --weight_decay 0.003
-fi
-
-
-## 6. Open-CLIP
-latents=$top_data_dir/pretrained/shape_latents/laion_CLIP-ViT-H-14-laion2B-s32B-b79K_latent_codes.pkl
-log_dir=$top_log_dir/latent_laion_CLIP-ViT-H-14-laion2B-s32B-b79K_based
-
-
-if false
-then
-  python $script_file\
-   -latent_codes_file $latents\
-   -shape_talk_file $shape_talk_file\
-   -vocab_file $vocab_file\
-   --log_dir $log_dir\
-   --use_timestamp False\
-   --random_seed $random_seed\
-   --gpu $gpu_id\
-   --weight_decay 0.003
-fi
+cp -r $LOG_DIR "$HOME_DIR/results"

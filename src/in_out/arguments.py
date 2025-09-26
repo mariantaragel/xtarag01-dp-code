@@ -215,7 +215,7 @@ def parse_train_test_latent_listener_arguments(notebook_options=None, save_args=
         "--listening_model",
         type=str,
         default="ablation_model_one",
-        help="ablation_model_one is transformer-basedablation_model_two is lstm-based",
+        help="ablation_model_one is transformer-based ablation_model_two is lstm-based",
     )
 
     # Training parameters
