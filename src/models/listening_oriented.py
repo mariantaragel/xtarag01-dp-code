@@ -9,7 +9,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-from ..utils.stats import AverageMeter
+from utils.stats import AverageMeter
 from .dgcnn import DGCNN
 from .lstm_encoder import LSTMEncoder
 from .mlp import MLP
@@ -181,7 +181,7 @@ class TransformerModel(nn.Module):
         super().__init__()
         self.model_type = "Transformer"
         self.pos_encoder = PositionalEncoding(d_model, dropout)
-        encoder_layers = TransformerEncoderLayer(d_model, nhead, d_hid, dropout)
+        encoder_layers = TransformerEncoderLayer(d_model, nhead, d_hid, dropout, batch_first=True)
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         self.encoder = nn.Embedding(ntoken, d_model)
         self.d_model = d_model

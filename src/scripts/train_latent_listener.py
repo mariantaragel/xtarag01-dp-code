@@ -9,6 +9,7 @@ from ast import literal_eval
 import numpy as np
 import pandas as pd
 import torch
+import wandb
 from torch import nn, optim
 
 from in_out.arguments import parse_train_test_latent_listener_arguments
@@ -43,6 +44,7 @@ logger.info("Latent codes with dimension {} are loaded.".format(shape_latent_dim
 df = pd.read_csv(args.shape_talk_file)
 df.tokens_encoded = df.tokens_encoded.apply(literal_eval)
 vocab = Vocabulary.load(args.vocab_file)
+
 
 # if args.add_shape_glot:
 #     raise ValueError("left out of public code")
@@ -131,7 +133,6 @@ lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     mode="max",
     factor=0.5,
     patience=args.lr_patience,
-    verbose=True,
     min_lr=5e-7,
 )
 
@@ -153,7 +154,6 @@ if args.pretrained_model_file is not None:
 else:
     start_epoch = 0
 
-
 ##
 # Training.
 ##
@@ -162,63 +162,71 @@ if args.do_training:
     checkpoint_file = osp.join(args.log_dir, "best_model.pt")
     logger.info("Start training of the listener.")
 
-    for epoch in range(start_epoch + 1, start_epoch + args.max_train_epochs + 1):
-        np.random.seed()
-        train_acc = single_epoch_train(
-            model, dataloaders["train"], criterion, optimizer, device=device
-        )["accuracy"]
+    with wandb.init(project="Train Latent Listener", config=args) as run:
+        run.watch(model, log_freq=100)
 
-        logger.info(f"@epoch-{epoch} train {train_acc:.3f}")
-
-        for split in ["val", "test"]:
-            epoch_accuracy = evaluate_listener(
-                model, dataloaders[split], device=device
+        for epoch in range(start_epoch + 1, start_epoch + args.max_train_epochs + 1):
+            np.random.seed()
+            train_acc = single_epoch_train(
+                model, dataloaders["train"], criterion, optimizer, device=device
             )["accuracy"]
 
-            if split == "val":
-                lr_scheduler.step(epoch_accuracy)
+            logger.info(f"@epoch-{epoch} train {train_acc:.3f}")
+            run.log({"train_accuracy": train_acc})
 
-                if epoch_accuracy > best_val_accuracy:
-                    epochs_val_not_improved = 0
-                    best_val_accuracy = epoch_accuracy
-                    save_state_dicts(
-                        checkpoint_file,
-                        epoch=epoch,
-                        model=model,
-                        optimizer=optimizer,
-                        lr_scheduler=lr_scheduler,
-                    )
-                else:
-                    epochs_val_not_improved += 1
+            for split in ["val", "test"]:
+                epoch_accuracy = evaluate_listener(
+                    model, dataloaders[split], device=device
+                )["accuracy"]
 
-            logger.info("{} {:.3f}".format(split, epoch_accuracy))
+                if split == "val":
+                    lr_scheduler.step(epoch_accuracy)
 
-            if split == "test" and epochs_val_not_improved == 0:
-                best_test_accuracy = epoch_accuracy
+                    if epoch_accuracy > best_val_accuracy:
+                        epochs_val_not_improved = 0
+                        best_val_accuracy = epoch_accuracy
+                        save_state_dicts(
+                            checkpoint_file,
+                            epoch=epoch,
+                            model=model,
+                            optimizer=optimizer,
+                            lr_scheduler=lr_scheduler,
+                        )
+                    else:
+                        epochs_val_not_improved += 1
 
-        if epochs_val_not_improved == 0:
-            logger.info("* validation accuracy improved *")
+                logger.info("{} {:.3f}".format(split, epoch_accuracy))
+                split_acc_text = split + "_accuracy"
+                run.log({split_acc_text: epoch_accuracy})
 
-        logger.info("\nbest test accuracy {:.3f}".format(best_test_accuracy))
+                if split == "test" and epochs_val_not_improved == 0:
+                    best_test_accuracy = epoch_accuracy
 
-        if epochs_val_not_improved == args.train_patience:
-            logger.warning(
-                f"Validation loss did not improve for {epochs_val_not_improved} consecutive epochs. Training is stopped."
-            )
-            break
+            if epochs_val_not_improved == 0:
+                logger.info("* validation accuracy improved *")
 
-    # Load newly trained model with best per-validation loss.
-    logger.info("Training is done!")
-    best_epoch = load_state_dicts(checkpoint_file, model=model)
-    logger.info(f"per-validation optimal epoch {best_epoch}")
-    test_acc = evaluate_listener(
-        model, dataloaders["test"], device=device, return_logits=True
-    )["accuracy"]
-    logger.info(f"(verifying) test accuracy at that epoch is : {test_acc}")
+            logger.info("\nbest test accuracy {:.3f}".format(best_test_accuracy))
 
-    # save one more time the model, this time as a module directly working for inference
-    checkpoint_pkl_file = osp.join(args.log_dir, "best_model.pkl")
-    torch_save_model(model, checkpoint_pkl_file)
+            if epochs_val_not_improved == args.train_patience:
+                logger.warning(
+                    f"Validation loss did not improve for {epochs_val_not_improved} consecutive epochs. Training is stopped."
+                )
+                break
+
+        # Load newly trained model with best per-validation loss.
+        logger.info("Training is done!")
+        best_epoch = load_state_dicts(checkpoint_file, model=model)
+        logger.info(f"per-validation optimal epoch {best_epoch}")
+        test_acc = evaluate_listener(
+            model, dataloaders["test"], device=device, return_logits=True
+        )["accuracy"]
+        logger.info(f"(verifying) test accuracy at that epoch is : {test_acc}")
+
+        # save one more time the model, this time as a module directly working for inference
+        checkpoint_pkl_file = osp.join(args.log_dir, "best_model.pkl")
+        torch_save_model(model, checkpoint_pkl_file)
+
+    wandb.finish()
 
 ##
 # Testing

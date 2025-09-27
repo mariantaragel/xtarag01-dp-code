@@ -12,7 +12,7 @@ token_list = df.utterance
 vocab = build_vocab(token_list, 0)
 print(vocab.word2idx)
 
-df["encoded_tokens"] = df["tokens"].apply(vocab.encode)
+df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
 
 print(df.head())
 
