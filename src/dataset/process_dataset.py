@@ -7,6 +7,7 @@ df = pd.read_csv(
 )
 
 df["assignmentid"] = "DP"
+df["saliency"] = 0
 df["tokens"] = df["utterance"].apply(list)
 
 token_list = df.utterance
