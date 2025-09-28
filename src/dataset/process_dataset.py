@@ -6,11 +6,11 @@ df = pd.read_csv(
     "/home/marian/DP/removed-front-teeth-v2/splits/removed-front-teeth-split.csv"
 )
 
+df["assignmentid"] = "DP"
 df["tokens"] = df["utterance"].apply(list)
 
 token_list = df.utterance
 vocab = build_vocab(token_list, 0)
-print(vocab.word2idx)
 
 df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
 
