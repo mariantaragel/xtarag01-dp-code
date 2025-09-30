@@ -8,9 +8,14 @@ df = pd.read_csv(
 
 df["assignmentid"] = "DP"
 df["saliency"] = 0
-df["tokens"] = df["utterance"].apply(list)
+df["tokens"] = df.utterance.str.split()
+df["hard_context"] = False
+df["target_object_class"] = df["object_class"]
+df["source_object_class"] = df["object_class"]
+df["source_dataset"] = "Orthodontic dental datatset"
+df["target_dataset"] = "Orthodontic dental datatset"
 
-token_list = df.utterance
+token_list = df.tokens
 vocab = build_vocab(token_list, 0)
 
 df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
