@@ -241,7 +241,7 @@ if args.do_training:
         run.log({"logit_0": logits[0], "logit_1": logits[1]})
         run.log({"text": tokens_decoded})
         run.log({"distractor": wandb.Object3D(np.array(distractor_shape))})
-        run.log({"target": wandb.Object3D(np.array(tagret_shape))})
+        run.log({"target": wandb.Object3D(np.array(target_shape))})
 
         logger.info(f"(verifying) test accuracy at that epoch is : {result["accuracy"]}")
 
