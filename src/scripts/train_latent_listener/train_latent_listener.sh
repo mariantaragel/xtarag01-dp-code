@@ -44,6 +44,7 @@ singularity exec --nv \
         -latent_codes_file $LATENTS \
         -shape_talk_file $SPLIT_FILE \
         -vocab_file $VOCAB_FILE \
+        -data_dir $PC_TOP_DIR \
         --log_dir $LOG_DIR \
         --use_timestamp False \
         --random_seed $RANDOM_SEED \

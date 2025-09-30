@@ -205,6 +205,12 @@ def parse_train_test_latent_listener_arguments(notebook_options=None, save_args=
         required=True,
         help="shape_uid_to_latent_code dictionary",
     )
+    parser.add_argument(
+        "-data_dir",
+        type=str,
+        required=True,
+        help="top directory containing pointcloud data",
+    )
 
     # Dataset oriented
     parser.add_argument("--restrict_shape_class", type=str, nargs="*", default=[])

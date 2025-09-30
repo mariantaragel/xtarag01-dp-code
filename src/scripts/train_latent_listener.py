@@ -30,6 +30,8 @@ from models.listening_oriented import (
     single_epoch_train,
 )
 
+from in_out.pointcloud import pc_loader_from_npz
+
 # Argument-handling.
 args = parse_train_test_latent_listener_arguments()
 logger = create_logger(args.log_dir)
@@ -39,6 +41,11 @@ logger = create_logger(args.log_dir)
 ##
 shape_to_latent_code = next(unpickle_data(args.latent_codes_file))
 shape_latent_dim = len(list(shape_to_latent_code.values())[0])
+for k, v in shape_to_latent_code.items():
+    print(list(shape_to_latent_code.values())[0])
+    print(list(shape_to_latent_code.keys())[0])
+    break
+latent_to_shape = {v.tobytes(): k for k, v in shape_to_latent_code.items()}
 logger.info("Latent codes with dimension {} are loaded.".format(shape_latent_dim))
 
 df = pd.read_csv(args.shape_talk_file)
@@ -81,6 +88,11 @@ df = df.assign(distractor_1=df.source_uid)
 
 def to_stimulus_func(x):
     return shape_to_latent_code[x]
+
+def from_stimulus_func(x):
+    shape_file = args.data_dir + latent_to_shape[x.tobytes()]
+    pc = pc_loader_from_npz(shape_file, only_pc=True)
+    return pc
 
 
 dataloaders = dict()
@@ -217,10 +229,21 @@ if args.do_training:
         logger.info("Training is done!")
         best_epoch = load_state_dicts(checkpoint_file, model=model)
         logger.info(f"per-validation optimal epoch {best_epoch}")
-        test_acc = evaluate_listener(
+        result = evaluate_listener(
             model, dataloaders["test"], device=device, return_logits=True
-        )["accuracy"]
-        logger.info(f"(verifying) test accuracy at that epoch is : {test_acc}")
+        )
+
+        tokens_decoded = vocab.decode_print(result["tokens"][0])
+        distractor_shape = from_stimulus_func(result["stimuli"][0][0])
+        target_shape = from_stimulus_func(result["stimuli"][0][1])
+        logits = result["logits"][0]
+
+        run.log({"logit_0": logits[0], "logit_1": logits[1]})
+        run.log({"text": tokens_decoded})
+        run.log({"distractor": wandb.Object3D(np.array(distractor_shape))})
+        run.log({"target": wandb.Object3D(np.array(tagret_shape))})
+
+        logger.info(f"(verifying) test accuracy at that epoch is : {result["accuracy"]}")
 
         # save one more time the model, this time as a module directly working for inference
         checkpoint_pkl_file = osp.join(args.log_dir, "best_model.pkl")

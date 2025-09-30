@@ -275,6 +275,9 @@ def evaluate_listener(listener, dataloader, device="cuda", return_logits=False):
     listener.eval()
     running_corrects = 0
     all_logits = []
+    all_tokens = []
+    all_stimuli = []
+    result = dict()
     for batch in dataloader:
         stimuli = batch["stimulus"].to(device)
         targets = batch["label"].to(device)
@@ -282,17 +285,20 @@ def evaluate_listener(listener, dataloader, device="cuda", return_logits=False):
         logits = listener(tokens, stimuli)
         if return_logits:
             all_logits.append(logits.cpu())
+            all_tokens.append(tokens.cpu())
+            all_stimuli.append(stimuli.cpu())
         preds = torch.argmax(logits, 1)
         running_corrects += torch.sum(preds == targets)
     n_examples = len(dataloader.dataset)
     accuracy = running_corrects.double() / n_examples
     accuracy = float(accuracy.cpu().squeeze().numpy())
 
-    result = dict()
     result["accuracy"] = accuracy
 
     if return_logits:
         result["logits"] = torch.cat(all_logits).numpy()
+        result["tokens"] = torch.cat(all_tokens).numpy()
+        result["stimuli"] = torch.cat(all_stimuli).numpy()
     return result
 
 
