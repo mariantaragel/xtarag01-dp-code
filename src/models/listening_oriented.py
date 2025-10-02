@@ -277,16 +277,19 @@ def evaluate_listener(listener, dataloader, device="cuda", return_logits=False):
     all_logits = []
     all_tokens = []
     all_stimuli = []
+    all_probabilities = []
     result = dict()
     for batch in dataloader:
         stimuli = batch["stimulus"].to(device)
         targets = batch["label"].to(device)
         tokens = batch["tokens"].to(device)
         logits = listener(tokens, stimuli)
+        probabilities = nn.functional.softmax(logits, dim=1)
         if return_logits:
             all_logits.append(logits.cpu())
             all_tokens.append(tokens.cpu())
             all_stimuli.append(stimuli.cpu())
+            all_probabilities.append(probabilities.cpu())
         preds = torch.argmax(logits, 1)
         running_corrects += torch.sum(preds == targets)
     n_examples = len(dataloader.dataset)
@@ -299,6 +302,7 @@ def evaluate_listener(listener, dataloader, device="cuda", return_logits=False):
         result["logits"] = torch.cat(all_logits).numpy()
         result["tokens"] = torch.cat(all_tokens).numpy()
         result["stimuli"] = torch.cat(all_stimuli).numpy()
+        result["probabilities"] = torch.cat(all_probabilities).numpy()
     return result
 
 

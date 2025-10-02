@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -N train_latent_listener_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=1:mem=8gb:ngpus=1:scratch_local=10gb
-#PBS -l walltime=0:15:00
+#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb
+#PBS -l walltime=0:30:00
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
@@ -18,8 +18,7 @@ LATENTS=$HOME_DIR/pretrained/shape_latents/latent_codes.pkl
 RANDOM_SEED=42
 GPU_ID=0
 BATCH_SIZE=64
-NUM_WORKERS=1
-MAX_EPOCHS=5
+NUM_WORKERS=2
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 
@@ -50,8 +49,7 @@ singularity exec --nv \
         --random_seed $RANDOM_SEED \
         --gpu $GPU_ID \
         --batch_size $BATCH_SIZE \
-        --num_workers $NUM_WORKERS \
-        --max_train_epochs $MAX_EPOCHS
+        --num_workers $NUM_WORKERS
 
 echo "Cloning resluts ..."
 

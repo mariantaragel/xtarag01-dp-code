@@ -1,16 +1,16 @@
 #!/bin/bash
 #PBS -N train_pc_ae_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=4:mem=8gb:ngpus=1:scratch_local=10gb
-#PBS -l walltime=0:30:00
+#PBS -l select=1:ncpus=4:mem=16gb:ngpus=1:scratch_local=20gb
+#PBS -l walltime=1:00:00
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
 PROJECT_DIR="$HOME_DIR/xtarag01-dp-code"
-DATA_DIR="$HOME_DIR/removed-front-teeth-v2"
+DATA_DIR="$HOME_DIR/removed-front-teeth-v3"
 
-SPLIT_FILE=../../removed-front-teeth-v2/splits/unary-split.csv
-PC_TOP_DIR=../../removed-front-teeth-v2/point-clouds
+SPLIT_FILE=../../removed-front-teeth-v3/splits/unary-split.csv
+PC_TOP_DIR=../../removed-front-teeth-v3/point-clouds
 LOG_DIR=../../log_pc_ae
 
 ENCODER_NET=pointnet

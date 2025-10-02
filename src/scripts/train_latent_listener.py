@@ -30,7 +30,7 @@ from models.listening_oriented import (
     single_epoch_train,
 )
 
-from in_out.pointcloud import pc_loader_from_npz
+from in_out.pointcloud import pc_loader_from_npz, center_in_unit_sphere
 
 # Argument-handling.
 args = parse_train_test_latent_listener_arguments()
@@ -42,8 +42,6 @@ logger = create_logger(args.log_dir)
 shape_to_latent_code = next(unpickle_data(args.latent_codes_file))
 shape_latent_dim = len(list(shape_to_latent_code.values())[0])
 for k, v in shape_to_latent_code.items():
-    print(list(shape_to_latent_code.values())[0])
-    print(list(shape_to_latent_code.keys())[0])
     break
 latent_to_shape = {v.tobytes(): k for k, v in shape_to_latent_code.items()}
 logger.info("Latent codes with dimension {} are loaded.".format(shape_latent_dim))
@@ -91,7 +89,8 @@ def to_stimulus_func(x):
 
 def from_stimulus_func(x):
     shape_file = args.data_dir + latent_to_shape[x.tobytes()]
-    pc = pc_loader_from_npz(shape_file, only_pc=True)
+    pc = pc_loader_from_npz(shape_file, swap_xy_axis=True)
+    pc = center_in_unit_sphere(pc)
     return pc
 
 
@@ -233,15 +232,15 @@ if args.do_training:
             model, dataloaders["test"], device=device, return_logits=True
         )
 
-        tokens_decoded = vocab.decode_print(result["tokens"][0])
-        distractor_shape = from_stimulus_func(result["stimuli"][0][0])
-        target_shape = from_stimulus_func(result["stimuli"][0][1])
-        logits = result["logits"][0]
+        table = wandb.Table(["Distractor", "Target", "Text", "Probabilities"])
+        for i in range(5):
+            tokens_decoded = vocab.decode_print(result["tokens"][i])
+            distractor_shape = wandb.Object3D({"type": "lidar/beta", "points": np.array(from_stimulus_func(result["stimuli"][i][0])) })
+            target_shape = wandb.Object3D({"type": "lidar/beta", "points": np.array(from_stimulus_func(result["stimuli"][i][1]))})
+            probabilities = result["probabilities"][i]
+            table.add_data(distractor_shape, target_shape, tokens_decoded, probabilities)
 
-        run.log({"logit_0": logits[0], "logit_1": logits[1]})
-        run.log({"text": tokens_decoded})
-        run.log({"distractor": wandb.Object3D(np.array(distractor_shape))})
-        run.log({"target": wandb.Object3D(np.array(target_shape))})
+        run.log({"examples": table})
 
         logger.info(f"(verifying) test accuracy at that epoch is : {result["accuracy"]}")
 

@@ -104,18 +104,15 @@ if args.do_training:
                 data_loaders[split], device=device
             )
             if split == "test":
-                run.log(
-                    {
-                        "pc_ae_input": wandb.Object3D(np.array(inputs[0][0])),
-                        "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][0])),
-                    }
-                )
-                run.log(
-                    {
-                        "pc_ae_input": wandb.Object3D(np.array(inputs[0][1])),
-                        "pc_ae_output": wandb.Object3D(np.array(reconstructions[0][1])),
-                    }
-                )
+                table = wandb.Table(["Input", "Output"])
+
+                for i in range(5):
+                    input_shape = wandb.Object3D({"type": "lidar/beta", "poins": np.array(inputs[0][i])})
+                    output_shape = wandb.Object3D({"type": "lidar/beta", "poins": np.array(reconstructions[0][i])})
+                    table.add_data(input_shape, output_shape)
+
+                run.log({"examples": table})
+
             print(split, loss)
 
     wandb.finish()
