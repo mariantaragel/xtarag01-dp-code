@@ -89,8 +89,9 @@ def to_stimulus_func(x):
 
 def from_stimulus_func(x):
     shape_file = args.data_dir + latent_to_shape[x.tobytes()]
-    pc = pc_loader_from_npz(shape_file, swap_xy_axis=True)
-    pc = center_in_unit_sphere(pc)
+    pc = np.array(pc_loader_from_npz(shape_file))
+    pc[:, 0] = -pc[:, 0]
+    # pc = np.array(center_in_unit_sphere(pc))
     return pc
 
 
@@ -235,8 +236,8 @@ if args.do_training:
         table = wandb.Table(["Distractor", "Target", "Text", "Probabilities"])
         for i in range(5):
             tokens_decoded = vocab.decode_print(result["tokens"][i])
-            distractor_shape = wandb.Object3D({"type": "lidar/beta", "points": np.array(from_stimulus_func(result["stimuli"][i][0])) })
-            target_shape = wandb.Object3D({"type": "lidar/beta", "points": np.array(from_stimulus_func(result["stimuli"][i][1]))})
+            distractor_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][0]))
+            target_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][1]))
             probabilities = result["probabilities"][i]
             table.add_data(distractor_shape, target_shape, tokens_decoded, probabilities)
 
