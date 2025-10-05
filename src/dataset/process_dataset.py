@@ -3,7 +3,7 @@ import pandas as pd
 from language.vocabulary import build_vocab
 
 df = pd.read_csv(
-    "/home/marian/DP/removed-front-teeth-v2/splits/removed-front-teeth-split.csv"
+    "/home/marian/DP/removed-front-teeth-v3/splits/removed-front-teeth-split.csv"
 )
 
 df["assignmentid"] = "DP"
@@ -23,7 +23,7 @@ df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
 print(df.head())
 
 df.to_csv(
-    "/home/marian/DP/removed-front-teeth-v2/splits/removed-front-teeth-split-processed.csv"
+    "/home/marian/DP/removed-front-teeth-v3/splits/removed-front-teeth-split-processed.csv"
 )
 
-vocab.save("vocabulary.pkl")
+vocab.save("/home/marian/DP/removed-front-teeth-v3/vocabulary/vocabulary.pkl")

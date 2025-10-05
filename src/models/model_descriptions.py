@@ -1,3 +1,11 @@
+import os.path as osp
+import warnings
+
+from in_out.basics import load_state_dicts, read_saved_args
+
+from .basic_ops_as_modules import ReLU
+from .changeit3d_net import LatentDirectionFinder
+from .listening_oriented import TransformerModel, TransformerModelFeature
 from .mlp import MLP
 from .point_net import PointNet
 from .pointcloud_autoencoder import PointcloudAutoencoder
@@ -21,4 +29,71 @@ def describe_pc_ae(args):
         raise NotImplementedError()
 
     model = PointcloudAutoencoder(ae_encoder, ae_decoder)
+    return model
+
+
+def load_pretrained_pc_ae(model_file):
+    config_file = osp.join(osp.dirname(model_file), "config.json.txt")
+    pc_ae_args = read_saved_args(config_file)
+    pc_ae = describe_pc_ae(pc_ae_args)
+
+    if osp.join(pc_ae_args.log_dir, "best_model.pt") != osp.abspath(model_file):
+        warnings.warn(
+            "The saved best_model.pt in the corresponding log_dir is not equal to the one requested."
+        )
+
+    best_epoch = load_state_dicts(model_file, model=pc_ae)
+    print(f"Pretrained PC-AE is loaded at epoch {best_epoch}.")
+    return pc_ae, pc_ae_args
+
+
+##
+# ChangeIt Models and Ablations
+##
+
+
+def ablations_changeit3d_net(
+    vocab, shape_latent_dim, ablation_version, self_contrast=True
+):
+    d_lang_model = 128
+    in_dim = d_lang_model + shape_latent_dim
+
+    editor = MLP(
+        in_dim,
+        [256, shape_latent_dim, shape_latent_dim, shape_latent_dim],
+        b_norm=True,
+        remove_final_bias=True,
+    )
+    stimulus_encoder = MLP(shape_latent_dim, [shape_latent_dim, shape_latent_dim])
+    closure = ReLU()
+
+    if ablation_version == "decoupling_mag_direction":
+        magnitude_encoder = MLP(in_dim, [256, 128, 64, 1], closure=closure)
+        unit_normalize_direction = True
+    elif ablation_version == "coupled":
+        unit_normalize_direction = False
+        magnitude_encoder = None
+    else:
+        raise ValueError("ablation version of ChangeIt3D not understood.")
+
+    print("Doing ST ablation", ablation_version, "with self contrast", self_contrast)
+
+    nhead = 2
+    d_hid = 128
+    nlayers = 2
+    language_dropout = 0.2
+    language_model = TransformerModel(
+        len(vocab), d_lang_model, nhead, d_hid, nlayers, language_dropout
+    )
+    language_encoder = TransformerModelFeature(language_model)
+
+    model = LatentDirectionFinder(
+        language_encoder,
+        stimulus_encoder,
+        editor,
+        magnitude_unit=magnitude_encoder,
+        unit_normalize_direction=unit_normalize_direction,
+        self_contrast=self_contrast,
+    )
+
     return model

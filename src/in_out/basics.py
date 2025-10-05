@@ -1,8 +1,11 @@
+import json
 import logging
 import os
 import os.path as osp
+import pprint
 import sys
 import warnings
+from argparse import ArgumentParser
 
 import torch
 from six.moves import cPickle
@@ -36,6 +39,29 @@ def save_state_dicts(checkpoint_file, epoch=None, **kwargs):
         checkpoint[key] = value.state_dict()
 
     torch.save(checkpoint, checkpoint_file)
+
+
+def read_saved_args(config_file, override_or_add_args=None, verbose=False):
+    """
+    :param config_file: json file containing arguments
+    :param override_args: dict e.g., {'gpu': '0'} will set the resulting arg.gpu to be 0
+    :param verbose:
+    :return:
+    """
+    parser = ArgumentParser()
+    args = parser.parse_args([])
+    with open(config_file, "r") as f_in:
+        args.__dict__ = json.load(f_in)
+
+    if override_or_add_args is not None:
+        for key, val in override_or_add_args.items():
+            args.__setattr__(key, val)
+
+    if verbose:
+        args_string = pprint.pformat(vars(args))
+        print(args_string)
+
+    return args
 
 
 def load_state_dicts(checkpoint_file, map_location=None, **kwargs):

@@ -263,5 +263,87 @@ def parse_train_test_latent_listener_arguments(notebook_options=None, save_args=
     return args
 
 
+def parse_train_changeit3d_arguments(notebook_options=None, save_args=True):
+    """Default/Main arguments for training or evaluating a shape editor (ChangeIt3D) guided by language.
+    :param notebook_options: (optional) list with arguments passed as strings. This can be handy e.g., if you are calling
+        the function inside a jupyter notebook. Else, the arguments will be read by the command line.
+    :return: argparse.ArgumentParser
+    """
+
+    parser = argparse.ArgumentParser(
+        description="train/test language-assisted shape editor (changeit3d)"
+    )
+
+    # Non-optional arguments
+    parser.add_argument(
+        "-shape_talk_file", type=str, required=True, help="referential language data"
+    )
+    parser.add_argument("-vocab_file", type=str, required=True, help="vocabulary file")
+    parser.add_argument(
+        "-latent_codes_file",
+        type=str,
+        required=True,
+        help="shape_uid_to_latent_code dictionary",
+    )
+    parser.add_argument("-pretrained_listener_file", type=str, required=True)
+    parser.add_argument(
+        "-pretrained_shape_generator",
+        type=str,
+        required=True,
+        help="you must pass it when using pcae",
+    )
+
+    # Dataset oriented
+    parser.add_argument("--restrict_shape_class", type=str, nargs="*", default=[])
+    parser.add_argument("--add_shape_glot", type=str2bool, default=False)
+    parser.add_argument(
+        "--clean_train_val_data",
+        type=str2bool,
+        default=True,
+        help="use the guiding listener to drop examples it misclassifies",
+    )
+
+    # Training parameters
+    parser.add_argument("--train", type=str2bool, default=True)
+    parser.add_argument("--init_lr", type=float, default=5e-4)
+    parser.add_argument("--max_train_epochs", type=positive_int, default=150)
+    parser.add_argument("--batch_size", type=int, default=1024)
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--train_patience", type=int, default=10)
+    parser.add_argument("--lr_patience", type=int, default=6)
+    parser.add_argument("--weight_decay", type=float, default=0)
+
+    # Specialized for shape editors:
+    parser.add_argument("--identity_penalty", type=float, default=0)
+    parser.add_argument(
+        "--shape_editor_variant",
+        type=str,
+        default="decoupling_mag_direction",
+        choices=["decoupling_mag_direction", "coupled"],
+        help="to decouple the computation of the magnitude of the edit from the direction, or not",
+    )
+    parser.add_argument("--self_contrast", type=str2bool, default=True)
+    parser.add_argument("--adaptive_id_penalty", type=str, default="")
+
+    # Misc
+    parser.add_argument(
+        "--log_dir", type=str, default="./logs", help="where to save checkpoints, etc."
+    )
+    parser.add_argument("--random_seed", type=int, default=2022)
+    parser.add_argument(
+        "--use_timestamp",
+        default=True,
+        type=str2bool,
+        help="use launch time for logging",
+    )
+    parser.add_argument(
+        "--experiment_tag", type=str, help="will be used to for logging"
+    )
+    parser.add_argument("--gpu_id", type=int, default=0)
+
+    args = _finish_parsing_args(parser, notebook_options, save_args)
+    return args
+
+
 if __name__ == "__main__":
     arguments = parse_train_test_pc_ae_arguments(save_args=True)

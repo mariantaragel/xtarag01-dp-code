@@ -98,7 +98,7 @@ def remove_tooth(mesh_file):
 
 if __name__ == "__main__":
     path = "/home/marian/DP/data/Orthodontic_dental_dataset/"
-    meshes = [f.path for f in os.scandir(path) if f.is_dir()][:130]
+    meshes = [f.path for f in os.scandir(path) if f.is_dir()][:260]
 
     source_uids = []
     target_uids = []
