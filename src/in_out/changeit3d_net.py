@@ -16,7 +16,6 @@ from language.vocabulary import Vocabulary
 from models.listening_oriented import evaluate_listener
 
 from .basics import unpickle_data
-from .datasets.shape_glot import add_sg_to_snt
 from .language_contrastive_dataset import LanguageContrastiveDataset
 
 
@@ -42,10 +41,6 @@ def prepare_input_data(args, logger=None):
     df.tokens_encoded = df.tokens_encoded.apply(literal_eval)
     vocab = Vocabulary.load(args.vocab_file)
 
-    if hasattr(args, "add_shape_glot") and args.add_shape_glot:
-        raise NotImplementedError("Not in public version")
-        df = add_sg_to_snt(df, vocab, args.split_file)
-
     # make df compatible with LanguageContrastive Dataset
     df = df.assign(target=df.target_uid)
     df = df.assign(distractor_1=df.source_uid)
@@ -65,7 +60,7 @@ def prepare_input_data(args, logger=None):
     # shape wins the comparison against the ground-truth target i.e., the listener is wrong here.
     if args.clean_train_val_data:
         device = torch.device("cuda:" + str(args.gpu_id))
-        pretrained_listener = torch.load(args.pretrained_listener_file).to(device)
+        pretrained_listener = torch.load(args.pretrained_listener_file, weights_only=False).to(device)
 
         def to_stimulus_func(x):
             return shape_to_latent_code[x]

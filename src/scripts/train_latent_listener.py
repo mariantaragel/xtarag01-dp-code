@@ -41,8 +41,6 @@ logger = create_logger(args.log_dir)
 ##
 shape_to_latent_code = next(unpickle_data(args.latent_codes_file))
 shape_latent_dim = len(list(shape_to_latent_code.values())[0])
-for k, v in shape_to_latent_code.items():
-    break
 latent_to_shape = {v.tobytes(): k for k, v in shape_to_latent_code.items()}
 logger.info("Latent codes with dimension {} are loaded.".format(shape_latent_dim))
 

@@ -16,6 +16,7 @@ from in_out.basics import create_logger, load_state_dicts, save_state_dicts
 from in_out.changeit3d_net import prepare_input_data
 from in_out.language_contrastive_dataset import LanguageContrastiveDataset
 from models.model_descriptions import ablations_changeit3d_net, load_pretrained_pc_ae
+from in_out.pointcloud import pc_loader_from_npz
 
 ##
 # Read arguments
@@ -27,6 +28,7 @@ logger = create_logger(args.log_dir)
 # Prepare the input data
 ##
 df, shape_to_latent_code, shape_latent_dim, vocab = prepare_input_data(args, logger)
+latent_to_shape = {v.tobytes(): k for k, v in shape_to_latent_code.items()}
 
 
 ##
@@ -34,6 +36,12 @@ df, shape_to_latent_code, shape_latent_dim, vocab = prepare_input_data(args, log
 ##
 def to_stimulus_func(x):
     return shape_to_latent_code[x]
+
+def latent_to_shape_func(x):
+    shape_file = args.data_dir + latent_to_shape[x.tobytes()]
+    pc = np.array(pc_loader_from_npz(shape_file))
+    pc[:, 0] = -pc[:, 0]
+    return pc
 
 
 dataloaders = dict()
@@ -65,6 +73,7 @@ model = ablations_changeit3d_net(
 device = torch.device("cuda:" + str(args.gpu_id))
 model = model.to(device)
 
+
 ##
 # Loading pretrained Shape Generator (AutoEncoder).
 ##
@@ -74,15 +83,11 @@ if args.shape_generator_type == "pcae":
     pc_ae = pc_ae.eval()
 
 
-def from_stimulus_func(latent_shapes, pc_ae, device):
-    all_recons = []
-
-    for vals in latent_shapes:
-        recons = pc_ae.decoder(torch.from_numpy(vals).to(device))
-        recons = recons.view([len(recons), -1, 3]).cpu()
-        all_recons.append(recons)
-
-    return all_recons
+@torch.no_grad()
+def from_stimulus_func(latent_shape, pc_ae, device):
+    recon = pc_ae.decoder(torch.from_numpy(latent_shape).to(device))
+    recon = recon.view(-1, 3).cpu().numpy()
+    return np.array(recon)
 
 
 ##
@@ -97,12 +102,11 @@ lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     mode="min",
     factor=0.5,
     patience=args.lr_patience,
-    verbose=True,
     min_lr=5e-7,
 )
 
 # Load pre-trained listener that will be used for optimizing the changer.
-pretrained_listener = torch.load(args.pretrained_listener_file).to(device)
+pretrained_listener = torch.load(args.pretrained_listener_file, weights_only=False).to(device)
 for param in pretrained_listener.parameters():
     param.requires_grad = False
 
@@ -123,7 +127,7 @@ if args.train:
         "Start training of the Language Assisted Shape Editing (ChangeIt3DNet)."
     )
 
-    with wandb.init(project="Train Latent Listener", config=args) as run:
+    with wandb.init(project="Train ChangeIt3D", config=args) as run:
         run.watch(model, log_freq=100)
 
         for epoch in range(start_epoch + 1, start_epoch + args.max_train_epochs + 1):
@@ -165,10 +169,10 @@ if args.train:
             run.log({"val_listening_loss": val_losses["listening_loss"]})
             run.log({"val_identity_loss": val_losses["identity_loss"]})
 
-            val_losses_str = " ".join(
-                ["{:15} {:.5f}".format(key, val) for key, val in val_losses.items()]
-            )
-            logger.info(val_losses_str)
+            val_loss_s1 = "{:15} {:.5f}".format("total_loss", val_losses["total_loss"])
+            val_loss_s2 = "{:15} {:.5f}".format("listening_loss", val_losses["listening_loss"])
+            val_loss_s3 = "{:15} {:.5f}".format("identity_loss", val_losses["identity_loss"])
+            logger.info(val_loss_s1 + " " + val_loss_s2 + " " + val_loss_s3)
 
             # test
             test_losses = model.evaluate(
@@ -221,13 +225,13 @@ if args.train:
         )
 
         table = wandb.Table(["Input", "Text", "Output", "Probabilities"])
-        for i in range(10):
-            input_shapes = from_stimulus_func(result["inputs"], pc_ae, device)
-            output_shapes = from_stimulus_func(result["outputs"], pc_ae, device)
+        for i in range(0, 46, 5):
+            input_shape = latent_to_shape_func(result["inputs"][i])
+            output_shape = from_stimulus_func(result["outputs"][i], pc_ae, device)
 
             texts = vocab.decode_print(result["texts"][i])
-            input_shape_3dobject = wandb.Object3D(input_shapes[i])
-            output_shape_3dobject = wandb.Object3D(input_shapes[i])
+            input_shape_3dobject = wandb.Object3D(input_shape)
+            output_shape_3dobject = wandb.Object3D(output_shape)
             probabilities = result["probabilities"][i]
             table.add_data(
                 input_shape_3dobject, texts, output_shape_3dobject, probabilities

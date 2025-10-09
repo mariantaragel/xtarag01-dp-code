@@ -37,10 +37,10 @@ def load_pretrained_pc_ae(model_file):
     pc_ae_args = read_saved_args(config_file)
     pc_ae = describe_pc_ae(pc_ae_args)
 
-    if osp.join(pc_ae_args.log_dir, "best_model.pt") != osp.abspath(model_file):
-        warnings.warn(
-            "The saved best_model.pt in the corresponding log_dir is not equal to the one requested."
-        )
+    # if osp.join(pc_ae_args.log_dir, "best_model.pt") != osp.abspath(model_file):
+    #     warnings.warn(
+    #         "The saved best_model.pt in the corresponding log_dir is not equal to the one requested."
+    #     )
 
     best_epoch = load_state_dicts(model_file, model=pc_ae)
     print(f"Pretrained PC-AE is loaded at epoch {best_epoch}.")
