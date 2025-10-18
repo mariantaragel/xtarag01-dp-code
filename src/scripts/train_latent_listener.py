@@ -66,6 +66,12 @@ if len(args.restrict_shape_class) > 0:
         )
     )
 
+latent_code_keys = set(shape_to_latent_code.keys())
+df = df[
+    df['target_uid'].isin(latent_code_keys) &
+    df['source_uid'].isin(latent_code_keys)
+]
+
 assert df.target_uid.apply(lambda x: x in shape_to_latent_code).all(), (
     "all loaded stimuli must have a latent code"
 )
@@ -227,21 +233,24 @@ if args.do_training:
         logger.info("Training is done!")
         best_epoch = load_state_dicts(checkpoint_file, model=model)
         logger.info(f"per-validation optimal epoch {best_epoch}")
-        result = evaluate_listener(
-            model, dataloaders["test"], device=device, return_logits=True
-        )
 
-        table = wandb.Table(["Distractor", "Target", "Text", "Probabilities"])
-        for i in range(5):
-            tokens_decoded = vocab.decode_print(result["tokens"][i])
-            distractor_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][0]))
-            target_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][1]))
-            probabilities = result["probabilities"][i]
-            table.add_data(distractor_shape, target_shape, tokens_decoded, probabilities)
+        for split in ["train", "val", "test"]:
+            result = evaluate_listener(
+                model, dataloaders[split], device=device, return_logits=True
+            )
 
-        run.log({"examples": table})
+            table = wandb.Table(["Distractor", "Target", "Text", "Probabilities"])
+            for i in range(0, 46, 5):
+                tokens_decoded = vocab.decode_print(result["tokens"][i])
+                distractor_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][0]))
+                target_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][1]))
+                probabilities = result["probabilities"][i]
+                table.add_data(distractor_shape, target_shape, tokens_decoded, probabilities)
 
-        logger.info(f"(verifying) test accuracy at that epoch is : {result["accuracy"]}")
+            run.log({f"{split}_examples": table})
+
+            if split == "test":
+                logger.info(f"(verifying) test accuracy at that epoch is : {result["accuracy"]}")
 
         # save one more time the model, this time as a module directly working for inference
         checkpoint_pkl_file = osp.join(args.log_dir, "best_model.pkl")

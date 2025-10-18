@@ -1,27 +1,29 @@
 #!/bin/bash
 #PBS -N train_pc_ae_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=4:mem=16gb:ngpus=1:scratch_local=20gb
-#PBS -l walltime=1:00:00
+#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb
+#PBS -l walltime=2:00:00
+
+DATASET_NAME="removed-front-teeth-v5"
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
 PROJECT_DIR="$HOME_DIR/xtarag01-dp-code"
-DATA_DIR="$HOME_DIR/removed-front-teeth-v3"
+DATA_DIR="$HOME_DIR/$DATASET_NAME"
 
-SPLIT_FILE=../../removed-front-teeth-v3/splits/unary-split.csv
-PC_TOP_DIR=../../removed-front-teeth-v3/point-clouds
+SPLIT_FILE=../../$DATASET_NAME/splits/unary-split.csv
+PC_TOP_DIR=../../$DATASET_NAME/point-clouds
 LOG_DIR=../../log_pc_ae
 
 ENCODER_NET=pointnet
 DECODER_NET=mlp
-LOSS=chamfer
-BATCH_SIZE=32
+LOSS=emd
+BATCH_SIZE=64
 N_PC_POINTS=4096
 RANDOM_SEED=42
 SCALE=True
 GPU_ID=0
-NUM_WORKERS=4
+NUM_WORKERS=2
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 

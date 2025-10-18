@@ -103,15 +103,15 @@ if args.do_training:
             reconstructions, inputs, losses_per_example, loss = model.reconstruct(
                 data_loaders[split], device=device
             )
-            if split == "test":
-                table = wandb.Table(["Input", "Output"])
 
-                for i in range(5):
-                    input_shape = wandb.Object3D({"type": "lidar/beta", "poins": np.array(inputs[0][i])})
-                    output_shape = wandb.Object3D({"type": "lidar/beta", "poins": np.array(reconstructions[0][i])})
-                    table.add_data(input_shape, output_shape)
+            table = wandb.Table(["Input", "Output"])
 
-                run.log({"examples": table})
+            for i in range(0, 46, 5):
+                input_shape = wandb.Object3D(np.array(inputs[0][i]))
+                output_shape = wandb.Object3D(np.array(reconstructions[0][i]))
+                table.add_data(input_shape, output_shape)
+
+            run.log({f"{split}_examples": table})
 
             print(split, loss)
 

@@ -41,6 +41,12 @@ def prepare_input_data(args, logger=None):
     df.tokens_encoded = df.tokens_encoded.apply(literal_eval)
     vocab = Vocabulary.load(args.vocab_file)
 
+    latent_code_keys = set(shape_to_latent_code.keys())
+    df = df[
+        df['target_uid'].isin(latent_code_keys) &
+        df['source_uid'].isin(latent_code_keys)
+    ]
+
     # make df compatible with LanguageContrastive Dataset
     df = df.assign(target=df.target_uid)
     df = df.assign(distractor_1=df.source_uid)

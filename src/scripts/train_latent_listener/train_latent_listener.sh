@@ -2,18 +2,20 @@
 #PBS -N train_latent_listener_job
 #PBS -q gpu
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb
-#PBS -l walltime=0:30:00
+#PBS -l walltime=2:00:00
+
+DATASET_NAME="removed-front-teeth-v4"
 
 CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
 HOME_DIR="/storage/brno2/home/xtarag01"
 PROJECT_DIR="$HOME_DIR/xtarag01-dp-code"
-DATA_DIR="$HOME_DIR/removed-front-teeth-v2"
+DATA_DIR="$HOME_DIR/$DATASET_NAME"
 
-SPLIT_FILE=../../removed-front-teeth-v2/splits/removed-front-teeth-split-processed.csv
-PC_TOP_DIR=../../removed-front-teeth-v2/point-clouds
-VOCAB_FILE=../../removed-front-teeth-v2/vocabulary/vocabulary.pkl
+SPLIT_FILE=../../$DATASET_NAME/splits/removed-front-teeth-split-processed.csv
+PC_TOP_DIR=../../$DATASET_NAME/point-clouds
+VOCAB_FILE=../../$DATASET_NAME/vocabulary/vocabulary.pkl
 LOG_DIR=../../log_listener
-LATENTS=$HOME_DIR/pretrained/shape_latents/latent_codes.pkl
+LATENTS=$HOME_DIR/pretrained/shape_latents_v4/latent_codes.pkl
 
 RANDOM_SEED=42
 GPU_ID=0

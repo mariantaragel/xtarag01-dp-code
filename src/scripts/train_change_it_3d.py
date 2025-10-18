@@ -215,28 +215,29 @@ if args.train:
         best_epoch = load_state_dicts(checkpoint_file, model=model)
         logger.info(f"per-validation optimal epoch {best_epoch}")
 
-        result = model.evaluate(
-            pretrained_listener,
-            dataloaders["test"],
-            criterion,
-            gamma=args.identity_penalty,
-            adaptive_id_penalty=args.adaptive_id_penalty,
-            device=device,
-        )
-
-        table = wandb.Table(["Input", "Text", "Output", "Probabilities"])
-        for i in range(0, 46, 5):
-            input_shape = latent_to_shape_func(result["inputs"][i])
-            output_shape = from_stimulus_func(result["outputs"][i], pc_ae, device)
-
-            texts = vocab.decode_print(result["texts"][i])
-            input_shape_3dobject = wandb.Object3D(input_shape)
-            output_shape_3dobject = wandb.Object3D(output_shape)
-            probabilities = result["probabilities"][i]
-            table.add_data(
-                input_shape_3dobject, texts, output_shape_3dobject, probabilities
+        for split in ["train", "val", "test"]:
+            result = model.evaluate(
+                pretrained_listener,
+                dataloaders[split],
+                criterion,
+                gamma=args.identity_penalty,
+                adaptive_id_penalty=args.adaptive_id_penalty,
+                device=device,
             )
 
-        run.log({"examples": table})
+            table = wandb.Table(["Input", "Text", "Output", "Probabilities"])
+            for i in range(0, 46, 5):
+                input_shape = latent_to_shape_func(result["inputs"][i])
+                output_shape = from_stimulus_func(result["outputs"][i], pc_ae, device)
+
+                texts = vocab.decode_print(result["texts"][i])
+                input_shape_3dobject = wandb.Object3D(input_shape)
+                output_shape_3dobject = wandb.Object3D(output_shape)
+                probabilities = result["probabilities"][i]
+                table.add_data(
+                    input_shape_3dobject, texts, output_shape_3dobject, probabilities
+                )
+
+            run.log({f"{split}_examples": table})
 
     wandb.finish()
