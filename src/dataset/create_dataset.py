@@ -20,13 +20,13 @@ def downsample_vertices(points, n_samples):
     return points[idx]
 
 
-def remove_tooth(mesh_file):
+def remove_tooth(mesh_file, dataset_name, teeth_to_remove=[]):
     json_file = mesh_file[:-3] + "json"
 
     mesh = trimesh.load(mesh_file)
     source_vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
 
-    file_name_prefix = "/home/marian/DP/removed-front-teeth-v3/point-clouds"
+    file_name_prefix = f"/home/marian/DP/{dataset_name}/point-clouds"
     Path(file_name_prefix).mkdir(parents=True, exist_ok=True)
 
     orig_file_name_parts = mesh_file[:-4].split("/")
@@ -52,7 +52,10 @@ def remove_tooth(mesh_file):
     test_indices = other_indices[: len(other_indices) // 2]
     val_indices = other_indices[len(other_indices) // 2 :]
 
-    teeth = mesh_data["segmentation"].keys()
+    if teeth_to_remove == []:
+        teeth = mesh_data["segmentation"].keys()
+    else:
+        teeth = teeth_to_remove
 
     for tooth in teeth:
         vertices_to_remove = np.array(mesh_data["segmentation"][tooth]["vertices"])
@@ -91,14 +94,30 @@ def remove_tooth(mesh_file):
         elif orig_index in val_indices:
             splits.append("val")
         else:
-            splits.append("unassigned")
+            splits.append("train")
 
     return (source_file_names, target_file_names, utterances, object_classes, splits)
 
 
+def filter_meshes(mesh_files, must_included_teeth):
+    filtered_mesh_files = []
+
+    for mesh_file in mesh_files:
+        json_file = mesh_file[:-3] + "json"
+        with open(json_file, "r") as f:
+            mesh_data = json.load(f)
+            teeth = mesh_data["segmentation"].keys()
+            if set(must_included_teeth).issubset(teeth):
+                filtered_mesh_files.append(mesh_file)
+
+    return filtered_mesh_files
+
+
 if __name__ == "__main__":
+    dataset_name = "removed-front-teeth-v5"
+    teeth_to_remove = ["11", "12", "21", "22"]
     path = "/home/marian/DP/data/Orthodontic_dental_dataset/"
-    meshes = [f.path for f in os.scandir(path) if f.is_dir()][:260]
+    meshes = [f.path for f in os.scandir(path) if f.is_dir()]
 
     source_uids = []
     target_uids = []
@@ -112,11 +131,12 @@ if __name__ == "__main__":
         mesh_final_u = mesh_folder + "/final/U_Final.stl"
         mesh_final_l = mesh_folder + "/final/L_Final.stl"
 
-        meshes_to_process = [mesh_ori_u, mesh_ori_l, mesh_final_u, mesh_final_l]
+        meshes_to_process = [mesh_ori_u, mesh_final_u]
+        meshes_to_process = filter_meshes(meshes_to_process, teeth_to_remove)
 
         for mesh_file in meshes_to_process:
             source_uid, target_uid, utterance, object_class, split = remove_tooth(
-                mesh_file
+                mesh_file, dataset_name, teeth_to_remove
             )
 
             source_uids += source_uid
@@ -138,6 +158,6 @@ if __name__ == "__main__":
         }
     )
 
-    split_folder = "/home/marian/DP/removed-front-teeth-v3/splits"
+    split_folder = f"/home/marian/DP/{dataset_name}/splits"
     Path(split_folder).mkdir(parents=True, exist_ok=True)
     df.to_csv(f"{split_folder}/removed-front-teeth-split.csv", index=False)

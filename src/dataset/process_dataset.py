@@ -2,9 +2,9 @@ import pandas as pd
 
 from language.vocabulary import build_vocab
 
-df = pd.read_csv(
-    "/home/marian/DP/removed-front-teeth-v3/splits/removed-front-teeth-split.csv"
-)
+dataset_name = "removed-front-teeth-v5"
+
+df = pd.read_csv(f"/home/marian/DP/{dataset_name}/splits/removed-front-teeth-split.csv")
 
 df["assignmentid"] = "DP"
 df["saliency"] = 0
@@ -23,7 +23,7 @@ df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
 print(df.head())
 
 df.to_csv(
-    "/home/marian/DP/removed-front-teeth-v3/splits/removed-front-teeth-split-processed.csv"
+    f"/home/marian/DP/{dataset_name}/splits/removed-front-teeth-split-processed.csv"
 )
 
-vocab.save("/home/marian/DP/removed-front-teeth-v3/vocabulary/vocabulary.pkl")
+vocab.save(f"/home/marian/DP/{dataset_name}/vocabulary/vocabulary.pkl")
