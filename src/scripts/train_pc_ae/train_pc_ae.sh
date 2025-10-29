@@ -1,20 +1,23 @@
 #!/bin/bash
 #PBS -N train_pc_ae_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb
+#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=2:00:00
 
-DATASET_NAME="removed-front-teeth-v5"
+DATASET_NAME=removed-front-teeth-v7
 
-CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
-HOME_DIR="/storage/brno2/home/xtarag01"
-PROJECT_DIR="$HOME_DIR/xtarag01-dp-code"
-DATA_DIR="$HOME_DIR/$DATASET_NAME"
+CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
+HOME_DIR=/storage/brno2/home/xtarag01
+PROJECT_DIR=$HOME_DIR/xtarag01-dp-code
+DATA_DIR=$HOME_DIR/datasets/$DATASET_NAME
 
-SPLIT_FILE=../../$DATASET_NAME/splits/unary-split.csv
-PC_TOP_DIR=../../$DATASET_NAME/point-clouds
+SPLIT_FILE=$HOME_DIR/datasets/$DATASET_NAME/splits/unary-split.csv
+PC_TOP_DIR=$HOME_DIR/datasets/$DATASET_NAME/point-clouds
 LOG_DIR=../../log_pc_ae
 
+PRETRAINED_MODEL_FILE=$HOME_DIR/pretrained/$DATASET_NAME/pc_ae/best_model.pt
+
+TIMESTAMP=False
 ENCODER_NET=pointnet
 DECODER_NET=mlp
 LOSS=emd
@@ -26,18 +29,16 @@ GPU_ID=0
 NUM_WORKERS=2
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
+export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
 
 echo "Creating env..."
 
 cd $SCRATCHDIR
 cp -r $PROJECT_DIR .
 cp -r $DATA_DIR .
+cd xtarag01-dp-code/src
 
 trap 'clean_scratch' TERM EXIT
-
-export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
-
-cd xtarag01-dp-code/src
 
 echo "Starting training..."
 
@@ -56,8 +57,11 @@ singularity exec --nv \
         --scale_in_u_sphere $SCALE \
         --loss_function $LOSS \
         --gpu_id $GPU_ID \
-        --num_workers $NUM_WORKERS
+        --num_workers $NUM_WORKERS \
+        --use_timestamp $TIMESTAMP
 
-echo "Cloning resluts ..."
+echo "Cloning resluts..."
 
-cp -r $LOG_DIR "$HOME_DIR/results"
+cp $LOG_DIR/best_model.pt $HOME_DIR/pretrained/$DATASET_NAME/pc_ae/
+cp $LOG_DIR/config.json.txt $HOME_DIR/pretrained/$DATASET_NAME/pc_ae/
+cp $LOG_DIR/latent_codes.pkl $HOME_DIR/pretrained/$DATASET_NAME/pc_ae/

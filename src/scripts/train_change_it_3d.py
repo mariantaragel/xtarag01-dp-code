@@ -15,8 +15,8 @@ from in_out.arguments import parse_train_changeit3d_arguments
 from in_out.basics import create_logger, load_state_dicts, save_state_dicts
 from in_out.changeit3d_net import prepare_input_data
 from in_out.language_contrastive_dataset import LanguageContrastiveDataset
-from models.model_descriptions import ablations_changeit3d_net, load_pretrained_pc_ae
 from in_out.pointcloud import pc_loader_from_npz
+from models.model_descriptions import ablations_changeit3d_net, load_pretrained_pc_ae
 
 ##
 # Read arguments
@@ -36,6 +36,7 @@ latent_to_shape = {v.tobytes(): k for k, v in shape_to_latent_code.items()}
 ##
 def to_stimulus_func(x):
     return shape_to_latent_code[x]
+
 
 def latent_to_shape_func(x):
     shape_file = args.data_dir + latent_to_shape[x.tobytes()]
@@ -106,7 +107,9 @@ lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 )
 
 # Load pre-trained listener that will be used for optimizing the changer.
-pretrained_listener = torch.load(args.pretrained_listener_file, weights_only=False).to(device)
+pretrained_listener = torch.load(args.pretrained_listener_file, weights_only=False).to(
+    device
+)
 for param in pretrained_listener.parameters():
     param.requires_grad = False
 
@@ -170,8 +173,12 @@ if args.train:
             run.log({"val_identity_loss": val_losses["identity_loss"]})
 
             val_loss_s1 = "{:15} {:.5f}".format("total_loss", val_losses["total_loss"])
-            val_loss_s2 = "{:15} {:.5f}".format("listening_loss", val_losses["listening_loss"])
-            val_loss_s3 = "{:15} {:.5f}".format("identity_loss", val_losses["identity_loss"])
+            val_loss_s2 = "{:15} {:.5f}".format(
+                "listening_loss", val_losses["listening_loss"]
+            )
+            val_loss_s3 = "{:15} {:.5f}".format(
+                "identity_loss", val_losses["identity_loss"]
+            )
             logger.info(val_loss_s1 + " " + val_loss_s2 + " " + val_loss_s3)
 
             # test

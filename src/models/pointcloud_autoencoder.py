@@ -50,13 +50,17 @@ class PointcloudAutoencoder(nn.Module):
     @torch.no_grad()
     def embed_dataset(self, loader, device="cuda"):
         latents = []
+        classes = []
         self.eval()
         for batch in loader:
             b_pc = batch["pointcloud"].to(device)
+            b_cls = batch["model_class"].to(device)
             latent_b = self.embed(b_pc)
             latents.append(latent_b.cpu())
+            classes.append(b_cls.cpu())
         latents = torch.cat(latents).numpy()
-        return latents
+        classes = torch.cat(classes).numpy()
+        return latents, classes
 
     def train_for_one_epoch(
         self, loader, optimizer, device="cuda", loss_rule="chamfer"

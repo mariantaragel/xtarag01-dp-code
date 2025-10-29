@@ -1,26 +1,28 @@
 #!/bin/bash
 #PBS -N train_latent_listener_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb
+#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=2:00:00
 
-DATASET_NAME="removed-front-teeth-v4"
+DATASET_NAME=removed-front-teeth-v7
 
-CONTAINER="/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF"
-HOME_DIR="/storage/brno2/home/xtarag01"
-PROJECT_DIR="$HOME_DIR/xtarag01-dp-code"
-DATA_DIR="$HOME_DIR/$DATASET_NAME"
+CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
+HOME_DIR=/storage/brno2/home/xtarag01
+PROJECT_DIR=$HOME_DIR/xtarag01-dp-code
+DATA_DIR=$HOME_DIR/datasets/$DATASET_NAME
 
-SPLIT_FILE=../../$DATASET_NAME/splits/removed-front-teeth-split-processed.csv
-PC_TOP_DIR=../../$DATASET_NAME/point-clouds
-VOCAB_FILE=../../$DATASET_NAME/vocabulary/vocabulary.pkl
+SPLIT_FILE=$HOME_DIR/datasets/$DATASET_NAME/splits/processed-split.csv
+PC_TOP_DIR=$HOME_DIR/datasets/$DATASET_NAME/point-clouds
+VOCAB_FILE=$HOME_DIR/datasets/$DATASET_NAME/vocabulary/vocabulary.pkl
 LOG_DIR=../../log_listener
-LATENTS=$HOME_DIR/pretrained/shape_latents_v4/latent_codes.pkl
+LATENTS=$HOME_DIR/pretrained/$DATASET_NAME/pc_ae/latent_codes.pkl
 
 RANDOM_SEED=42
 GPU_ID=0
-BATCH_SIZE=64
+BATCH_SIZE=128
 NUM_WORKERS=2
+# LISTENING_MODEL=ablation_model_one # transformer
+LISTENING_MODEL=ablation_model_two # lstm
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 
@@ -51,8 +53,13 @@ singularity exec --nv \
         --random_seed $RANDOM_SEED \
         --gpu $GPU_ID \
         --batch_size $BATCH_SIZE \
-        --num_workers $NUM_WORKERS
+        --num_workers $NUM_WORKERS \
+        --listening_model $LISTENING_MODEL
 
 echo "Cloning resluts ..."
 
-cp -r $LOG_DIR "$HOME_DIR/results"
+cp $LOG_DIR/analysis_of_trained_listener.pkl $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/
+cp $LOG_DIR/best_model.pkl $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/
+cp $LOG_DIR/best_model.pt $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/
+cp $LOG_DIR/config.json.txt $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/
+cp $LOG_DIR/log.txt $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/

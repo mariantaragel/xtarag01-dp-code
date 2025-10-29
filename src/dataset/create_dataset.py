@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from pathlib import Path
@@ -20,13 +21,13 @@ def downsample_vertices(points, n_samples):
     return points[idx]
 
 
-def remove_tooth(mesh_file, dataset_name, teeth_to_remove=[]):
+def remove_tooth(mesh_file, dataset_name, args, teeth_to_remove=[]):
     json_file = mesh_file[:-3] + "json"
 
-    mesh = trimesh.load(mesh_file)
+    mesh = trimesh.load(mesh_file, process=False)
     source_vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
 
-    file_name_prefix = f"/home/marian/DP/{dataset_name}/point-clouds"
+    file_name_prefix = f"{args.save_dir}/{dataset_name}/point-clouds"
     Path(file_name_prefix).mkdir(parents=True, exist_ok=True)
 
     orig_file_name_parts = mesh_file[:-4].split("/")
@@ -41,11 +42,13 @@ def remove_tooth(mesh_file, dataset_name, teeth_to_remove=[]):
     utterances = []
     object_classes = []
     splits = []
+    source_object_classes = []
+    target_object_classes = []
 
     with open(json_file, "r") as f:
         mesh_data = json.load(f)
 
-    with open("../../../data/train-test-split.json", "r") as f:
+    with open(f"{args.data_dir}/train-test-split.json", "r") as f:
         split_data = json.load(f)
     train_indices = split_data["train"]
     other_indices = split_data["test"]
@@ -53,22 +56,20 @@ def remove_tooth(mesh_file, dataset_name, teeth_to_remove=[]):
     val_indices = other_indices[len(other_indices) // 2 :]
 
     if teeth_to_remove == []:
-        teeth = mesh_data["segmentation"].keys()
+        teeth = list(mesh_data["segmentation"].keys())
     else:
         teeth = teeth_to_remove
 
+    tree = cKDTree(mesh.vertices)
     for tooth in teeth:
         vertices_to_remove = np.array(mesh_data["segmentation"][tooth]["vertices"])
-        tree = cKDTree(mesh.vertices)
         distances, indices = tree.query(vertices_to_remove, k=1)
 
         mask = np.full(mesh.vertices.shape[0], True)
         mask[indices] = False
 
-        new_mesh = mesh.copy()
-        new_mesh.update_vertices(mask)
-
-        target_vertices = downsample_vertices(new_mesh.vertices, N_PC_POINTS)
+        remaining_vertices = mesh.vertices[mask]
+        target_vertices = downsample_vertices(remaining_vertices, N_PC_POINTS)
 
         target_file_name = f"/{orig_index}_{orig_name}_{tooth}_target.npz"
 
@@ -77,15 +78,16 @@ def remove_tooth(mesh_file, dataset_name, teeth_to_remove=[]):
         )
 
         utterance = f"remove tooth {tooth}"
-        if "U" in orig_name:
-            object_class = "upper_jaw"
-        elif "L" in orig_name:
-            object_class = "lower_jaw"
+        object_class = "upper jaw"
+        source_object_class = "[]"
+        target_object_class = f"[{tooth}]"
 
         source_file_names.append(source_file_name)
         target_file_names.append(target_file_name)
         utterances.append(utterance)
         object_classes.append(object_class)
+        source_object_classes.append(source_object_class)
+        target_object_classes.append(target_object_class)
 
         if orig_index in train_indices:
             splits.append("train")
@@ -96,7 +98,15 @@ def remove_tooth(mesh_file, dataset_name, teeth_to_remove=[]):
         else:
             splits.append("train")
 
-    return (source_file_names, target_file_names, utterances, object_classes, splits)
+    return (
+        source_file_names,
+        target_file_names,
+        utterances,
+        object_classes,
+        source_object_classes,
+        target_object_classes,
+        splits,
+    )
 
 
 def filter_meshes(mesh_files, must_included_teeth):
@@ -114,36 +124,50 @@ def filter_meshes(mesh_files, must_included_teeth):
 
 
 if __name__ == "__main__":
-    dataset_name = "removed-front-teeth-v5"
-    teeth_to_remove = ["11", "12", "21", "22"]
-    path = "/home/marian/DP/data/Orthodontic_dental_dataset/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_dir", help="Path to point cloud data")
+    parser.add_argument("--dataset_name", help="Name of the dataset")
+    parser.add_argument("--save_dir", help="Where to store created dataset")
+    args = parser.parse_args()
+
+    teeth_to_remove = ["11"]
+    dataset_name = args.dataset_name
+    path = args.data_dir + "/Orthodontic_dental_dataset"
+
     meshes = [f.path for f in os.scandir(path) if f.is_dir()]
+    meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
+    meshes_upper_final = [m + "/final/U_Final.stl" for m in meshes]
+
+    meshes_upper_ori = filter_meshes(meshes_upper_ori, teeth_to_remove)
+    meshes_upper_final = filter_meshes(meshes_upper_final, teeth_to_remove)
+    meshes_to_process = meshes_upper_ori + meshes_upper_final
 
     source_uids = []
     target_uids = []
     utterances = []
     object_classes = []
     splits = []
+    source_object_classes = []
+    target_object_classes = []
 
-    for mesh_folder in tqdm(meshes):
-        mesh_ori_u = mesh_folder + "/ori/U_Ori.stl"
-        mesh_ori_l = mesh_folder + "/ori/L_Ori.stl"
-        mesh_final_u = mesh_folder + "/final/U_Final.stl"
-        mesh_final_l = mesh_folder + "/final/L_Final.stl"
+    for mesh_file in tqdm(meshes_to_process):
+        (
+            source_uid,
+            target_uid,
+            utterance,
+            object_class,
+            source_object_class,
+            target_object_class,
+            split,
+        ) = remove_tooth(mesh_file, dataset_name, args, teeth_to_remove)
 
-        meshes_to_process = [mesh_ori_u, mesh_final_u]
-        meshes_to_process = filter_meshes(meshes_to_process, teeth_to_remove)
-
-        for mesh_file in meshes_to_process:
-            source_uid, target_uid, utterance, object_class, split = remove_tooth(
-                mesh_file, dataset_name, teeth_to_remove
-            )
-
-            source_uids += source_uid
-            target_uids += target_uid
-            utterances += utterance
-            object_classes += object_class
-            splits += split
+        source_uids += source_uid
+        target_uids += target_uid
+        utterances += utterance
+        object_classes += object_class
+        source_object_classes += source_object_class
+        target_object_classes += target_object_class
+        splits += split
 
     df = pd.DataFrame(
         {
@@ -151,6 +175,8 @@ if __name__ == "__main__":
             "target_uid": target_uids,
             "utterance": utterances,
             "object_class": object_classes,
+            "source_object_class": source_object_classes,
+            "target_object_class": target_object_classes,
             "source_unary_split": splits,
             "target_unary_split": splits,
             "listening_split": splits,
@@ -158,6 +184,6 @@ if __name__ == "__main__":
         }
     )
 
-    split_folder = f"/home/marian/DP/{dataset_name}/splits"
+    split_folder = f"{args.save_dir}/{dataset_name}/splits"
     Path(split_folder).mkdir(parents=True, exist_ok=True)
-    df.to_csv(f"{split_folder}/removed-front-teeth-split.csv", index=False)
+    df.to_csv(f"{split_folder}/raw-split.csv", index=False)

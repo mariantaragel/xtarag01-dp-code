@@ -22,6 +22,7 @@ from in_out.basics import (
     unpickle_data,
 )
 from in_out.language_contrastive_dataset import LanguageContrastiveDataset
+from in_out.pointcloud import pc_loader_from_npz
 from language.vocabulary import Vocabulary
 from models.listening_oriented import (
     ablation_model_one,
@@ -29,8 +30,6 @@ from models.listening_oriented import (
     evaluate_listener,
     single_epoch_train,
 )
-
-from in_out.pointcloud import pc_loader_from_npz, center_in_unit_sphere
 
 # Argument-handling.
 args = parse_train_test_latent_listener_arguments()
@@ -68,8 +67,7 @@ if len(args.restrict_shape_class) > 0:
 
 latent_code_keys = set(shape_to_latent_code.keys())
 df = df[
-    df['target_uid'].isin(latent_code_keys) &
-    df['source_uid'].isin(latent_code_keys)
+    df["target_uid"].isin(latent_code_keys) & df["source_uid"].isin(latent_code_keys)
 ]
 
 assert df.target_uid.apply(lambda x: x in shape_to_latent_code).all(), (
@@ -90,6 +88,7 @@ df = df.assign(distractor_1=df.source_uid)
 
 def to_stimulus_func(x):
     return shape_to_latent_code[x]
+
 
 def from_stimulus_func(x):
     shape_file = args.data_dir + latent_to_shape[x.tobytes()]
@@ -242,15 +241,23 @@ if args.do_training:
             table = wandb.Table(["Distractor", "Target", "Text", "Probabilities"])
             for i in range(0, 46, 5):
                 tokens_decoded = vocab.decode_print(result["tokens"][i])
-                distractor_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][0]))
-                target_shape = wandb.Object3D(from_stimulus_func(result["stimuli"][i][1]))
+                distractor_shape = wandb.Object3D(
+                    from_stimulus_func(result["stimuli"][i][0])
+                )
+                target_shape = wandb.Object3D(
+                    from_stimulus_func(result["stimuli"][i][1])
+                )
                 probabilities = result["probabilities"][i]
-                table.add_data(distractor_shape, target_shape, tokens_decoded, probabilities)
+                table.add_data(
+                    distractor_shape, target_shape, tokens_decoded, probabilities
+                )
 
             run.log({f"{split}_examples": table})
 
             if split == "test":
-                logger.info(f"(verifying) test accuracy at that epoch is : {result["accuracy"]}")
+                logger.info(
+                    f"(verifying) test accuracy at that epoch is : {result['accuracy']}"
+                )
 
         # save one more time the model, this time as a module directly working for inference
         checkpoint_pkl_file = osp.join(args.log_dir, "best_model.pkl")

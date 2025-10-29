@@ -43,8 +43,8 @@ def prepare_input_data(args, logger=None):
 
     latent_code_keys = set(shape_to_latent_code.keys())
     df = df[
-        df['target_uid'].isin(latent_code_keys) &
-        df['source_uid'].isin(latent_code_keys)
+        df["target_uid"].isin(latent_code_keys)
+        & df["source_uid"].isin(latent_code_keys)
     ]
 
     # make df compatible with LanguageContrastive Dataset
@@ -66,7 +66,9 @@ def prepare_input_data(args, logger=None):
     # shape wins the comparison against the ground-truth target i.e., the listener is wrong here.
     if args.clean_train_val_data:
         device = torch.device("cuda:" + str(args.gpu_id))
-        pretrained_listener = torch.load(args.pretrained_listener_file, weights_only=False).to(device)
+        pretrained_listener = torch.load(
+            args.pretrained_listener_file, weights_only=False
+        ).to(device)
 
         def to_stimulus_func(x):
             return shape_to_latent_code[x]

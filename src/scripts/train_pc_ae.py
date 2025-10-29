@@ -1,10 +1,12 @@
 import os.path as osp
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import tqdm
 import wandb
+from sklearn.manifold import TSNE
 from torch import optim
 
 from in_out.arguments import parse_train_test_pc_ae_arguments
@@ -99,7 +101,7 @@ if args.do_training:
         best_epoch = load_state_dicts(osp.join(args.log_dir, model_name), model=model)
         print("per-validation optimal epoch", best_epoch)
         print("losses at this epoch:", best_epoch)
-        for split in ["train", "val", "test"]:
+        for split in ["train", "test"]:
             reconstructions, inputs, losses_per_example, loss = model.reconstruct(
                 data_loaders[split], device=device
             )
@@ -112,8 +114,32 @@ if args.do_training:
                 table.add_data(input_shape, output_shape)
 
             run.log({f"{split}_examples": table})
-
             print(split, loss)
+
+        train_loader = deterministic_data_loader(
+            data_loaders["train"],
+            **{
+                "batch_size": args.batch_size,
+                "worker_init_fn": lambda x: np.random.seed(seed=int(args.random_seed)),
+            },
+        )
+        train_latents, train_classes = model.embed_dataset(train_loader, device=device)
+        unique_classes = np.unique(train_classes)
+
+        tsne = TSNE(n_components=2, random_state=int(args.random_seed))
+        z2d = tsne.fit_transform(train_latents)
+
+        fig, ax = plt.subplots(figsize=(10, 8))
+        for cls in unique_classes:
+            mask = train_classes == cls
+            ax.scatter(z2d[mask, 0], z2d[mask, 1], s=6, alpha=0.9)
+
+        ax.set_title("Latent Space Visualization using t-SNE")
+        ax.set_xlabel("Latent Dimension 1")
+        ax.set_ylabel("Latent Dimension 1")
+
+        run.log({"tsne_train_latents": wandb.Image(fig)})
+        plt.close(fig)
 
     wandb.finish()
 
@@ -137,7 +163,7 @@ if args.extract_latent_codes:
                 },
             )
 
-        latents = model.embed_dataset(loader, device=device)
+        latents, _ = model.embed_dataset(loader, device=device)
         data_uids = loader.dataset.model_metadata["model_uid"]
 
         if len(data_uids) != len(latents):

@@ -299,7 +299,12 @@ def parse_train_changeit3d_arguments(notebook_options=None, save_args=True):
         help="top directory containing pointcloud data",
     )
 
-    parser.add_argument('--shape_generator_type', type=str, default="pcae", choices=["pcae", "sgf", "imnet"])
+    parser.add_argument(
+        "--shape_generator_type",
+        type=str,
+        default="pcae",
+        choices=["pcae", "sgf", "imnet"],
+    )
 
     # Dataset oriented
     parser.add_argument("--restrict_shape_class", type=str, nargs="*", default=[])

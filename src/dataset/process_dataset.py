@@ -1,29 +1,37 @@
+import argparse
+from pathlib import Path
+
 import pandas as pd
 
 from language.vocabulary import build_vocab
 
-dataset_name = "removed-front-teeth-v5"
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_name", help="Name of the dataset")
+    parser.add_argument("--save_dir", help="Where to store created dataset")
+    args = parser.parse_args()
 
-df = pd.read_csv(f"/home/marian/DP/{dataset_name}/splits/removed-front-teeth-split.csv")
+    dataset_name = args.dataset_name
 
-df["assignmentid"] = "DP"
-df["saliency"] = 0
-df["tokens"] = df.utterance.str.split()
-df["hard_context"] = False
-df["target_object_class"] = df["object_class"]
-df["source_object_class"] = df["object_class"]
-df["source_dataset"] = "Orthodontic dental datatset"
-df["target_dataset"] = "Orthodontic dental datatset"
+    df = pd.read_csv(f"{args.save_dir}/{dataset_name}/splits/raw-split.csv")
 
-token_list = df.tokens
-vocab = build_vocab(token_list, 0)
+    df["assignmentid"] = "DP"
+    df["saliency"] = 0
+    df["tokens"] = df.utterance.str.split()
+    df["hard_context"] = False
+    df["target_object_class"] = df["target_object_class"]
+    df["source_object_class"] = df["source_object_class"]
+    df["source_dataset"] = "Orthodontic dental datatset"
+    df["target_dataset"] = "Orthodontic dental datatset"
 
-df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
+    token_list = df.tokens
+    vocab = build_vocab(token_list, 0)
 
-print(df.head())
+    df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
 
-df.to_csv(
-    f"/home/marian/DP/{dataset_name}/splits/removed-front-teeth-split-processed.csv"
-)
+    Path(f"{args.save_dir}/{dataset_name}/vocabulary/").mkdir(
+        parents=True, exist_ok=True
+    )
 
-vocab.save(f"/home/marian/DP/{dataset_name}/vocabulary/vocabulary.pkl")
+    df.to_csv(f"{args.save_dir}/{dataset_name}/splits/processed-split.csv", index=False)
+    vocab.save(f"{args.save_dir}/{dataset_name}/vocabulary/vocabulary.pkl")
