@@ -116,10 +116,11 @@ class PointcloudAutoencoder(nn.Module):
             else:
                 raise NotImplementedError()
             losses_per_example.extend(loss.cpu())
-            reconstructions.append(recon.cpu().numpy())
-            inputs.append(b_pc.cpu().numpy())
+            reconstructions.append(recon.cpu())
+            inputs.append(b_pc.cpu())
             loss_meter.update(loss.mean().item(), len(b_pc))
 
-        reconstructions = reconstructions
+        reconstructions = torch.cat(reconstructions).numpy()
+        inputs = torch.cat(inputs).numpy()
         losses_per_example = torch.stack(losses_per_example).numpy()
         return reconstructions, inputs, losses_per_example, loss_meter.avg

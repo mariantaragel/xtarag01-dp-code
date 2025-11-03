@@ -109,8 +109,8 @@ if args.do_training:
             table = wandb.Table(["Input", "Output"])
 
             for i in range(0, 46, 5):
-                input_shape = wandb.Object3D(np.array(inputs[0][i]))
-                output_shape = wandb.Object3D(np.array(reconstructions[0][i]))
+                input_shape = wandb.Object3D(np.array(inputs[i]))
+                output_shape = wandb.Object3D(np.array(reconstructions[i]))
                 table.add_data(input_shape, output_shape)
 
             run.log({f"{split}_examples": table})
@@ -128,15 +128,18 @@ if args.do_training:
 
         tsne = TSNE(n_components=2, random_state=int(args.random_seed))
         z2d = tsne.fit_transform(train_latents)
+        data_uids = train_loader.dataset.model_metadata["model_uid"]
+        for k, v in zip(data_uids, z2d):
+            print(k, v)
 
         fig, ax = plt.subplots(figsize=(10, 8))
         for cls in unique_classes:
             mask = train_classes == cls
-            ax.scatter(z2d[mask, 0], z2d[mask, 1], s=6, alpha=0.9)
+            ax.scatter(z2d[mask, 0], z2d[mask, 1], alpha=0.9)
 
         ax.set_title("Latent Space Visualization using t-SNE")
         ax.set_xlabel("Latent Dimension 1")
-        ax.set_ylabel("Latent Dimension 1")
+        ax.set_ylabel("Latent Dimension 2")
 
         run.log({"tsne_train_latents": wandb.Image(fig)})
         plt.close(fig)

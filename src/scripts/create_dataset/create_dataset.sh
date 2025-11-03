@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=1:mem=32gb:ngpus=0:scratch_local=20gb
 #PBS -l walltime=2:00:00
 
-DATASET_NAME=removed-front-teeth-v7
+DATASET_NAME=removed-front-teeth-v9
 HOME_DIR=/storage/brno2/home/xtarag01
 PROJECT_DIR=$HOME_DIR/xtarag01-dp-code
 DATA_DIR=$HOME_DIR/data

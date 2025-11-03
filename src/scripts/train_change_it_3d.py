@@ -88,7 +88,8 @@ if args.shape_generator_type == "pcae":
 def from_stimulus_func(latent_shape, pc_ae, device):
     recon = pc_ae.decoder(torch.from_numpy(latent_shape).to(device))
     recon = recon.view(-1, 3).cpu().numpy()
-    return np.array(recon)
+    recon[:, 0] = -recon[:, 0]
+    return recon
 
 
 ##

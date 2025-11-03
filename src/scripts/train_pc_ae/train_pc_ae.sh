@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=2:00:00
 
-DATASET_NAME=removed-front-teeth-v7
+DATASET_NAME=removed-front-teeth-v9
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -15,13 +15,12 @@ SPLIT_FILE=$HOME_DIR/datasets/$DATASET_NAME/splits/unary-split.csv
 PC_TOP_DIR=$HOME_DIR/datasets/$DATASET_NAME/point-clouds
 LOG_DIR=../../log_pc_ae
 
-PRETRAINED_MODEL_FILE=$HOME_DIR/pretrained/$DATASET_NAME/pc_ae/best_model.pt
-
 TIMESTAMP=False
 ENCODER_NET=pointnet
 DECODER_NET=mlp
 LOSS=emd
-BATCH_SIZE=64
+BATCH_SIZE=96
+LR=0.00075
 N_PC_POINTS=4096
 RANDOM_SEED=42
 SCALE=True
@@ -58,9 +57,12 @@ singularity exec --nv \
         --loss_function $LOSS \
         --gpu_id $GPU_ID \
         --num_workers $NUM_WORKERS \
-        --use_timestamp $TIMESTAMP
+        --use_timestamp $TIMESTAMP \
+        --init_lr $LR
 
 echo "Cloning resluts..."
+
+mkdir -p $HOME_DIR/pretrained/$DATASET_NAME/pc_ae/
 
 cp $LOG_DIR/best_model.pt $HOME_DIR/pretrained/$DATASET_NAME/pc_ae/
 cp $LOG_DIR/config.json.txt $HOME_DIR/pretrained/$DATASET_NAME/pc_ae/

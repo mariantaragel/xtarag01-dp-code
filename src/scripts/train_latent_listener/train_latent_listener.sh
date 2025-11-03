@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=2:00:00
 
-DATASET_NAME=removed-front-teeth-v7
+DATASET_NAME=removed-front-teeth-v9
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -19,24 +19,23 @@ LATENTS=$HOME_DIR/pretrained/$DATASET_NAME/pc_ae/latent_codes.pkl
 
 RANDOM_SEED=42
 GPU_ID=0
-BATCH_SIZE=128
+BATCH_SIZE=96 # 128
+LR=0.00075 # 0.001
 NUM_WORKERS=2
-# LISTENING_MODEL=ablation_model_one # transformer
-LISTENING_MODEL=ablation_model_two # lstm
+LISTENING_MODEL=ablation_model_one # transformer
+# LISTENING_MODEL=ablation_model_two # lstm
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
+export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
 
 echo "Creating env..."
 
 cd $SCRATCHDIR
 cp -r $PROJECT_DIR .
 cp -r $DATA_DIR .
+cd xtarag01-dp-code/src
 
 trap 'clean_scratch' TERM EXIT
-
-export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
-
-cd xtarag01-dp-code/src
 
 echo "Starting training..."
 
@@ -54,9 +53,12 @@ singularity exec --nv \
         --gpu $GPU_ID \
         --batch_size $BATCH_SIZE \
         --num_workers $NUM_WORKERS \
-        --listening_model $LISTENING_MODEL
+        --listening_model $LISTENING_MODEL \
+        --init_lr $LR
 
 echo "Cloning resluts ..."
+
+mkdir -p $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/
 
 cp $LOG_DIR/analysis_of_trained_listener.pkl $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/
 cp $LOG_DIR/best_model.pkl $HOME_DIR/pretrained/$DATASET_NAME/latent_listener/

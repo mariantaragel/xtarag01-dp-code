@@ -1,7 +1,8 @@
 import os.path as osp
-import warnings
 
 from in_out.basics import load_state_dicts, read_saved_args
+from in_out.changeit3d_net import load_pickled_shape_latent_codes
+from language.vocabulary import Vocabulary
 
 from .basic_ops_as_modules import ReLU
 from .changeit3d_net import LatentDirectionFinder
@@ -97,3 +98,23 @@ def ablations_changeit3d_net(
     )
 
     return model
+
+
+def load_pretrained_changeit3d_net(checkpoint_file, shape_latent_dim=None, vocab=None):
+    config_file = osp.join(osp.dirname(checkpoint_file), "config.json.txt")
+    args = read_saved_args(config_file)
+
+    if shape_latent_dim is None:
+        shape_latent_dim = load_pickled_shape_latent_codes(args)
+
+    if vocab is None:
+        vocab = Vocabulary.load(args.vocab_file)
+
+    model = ablations_changeit3d_net(
+        vocab, shape_latent_dim, args.shape_editor_variant, args.self_contrast
+    )
+
+    best_epoch = load_state_dicts(checkpoint_file, model=model, map_location="cpu")
+    model = model.eval()
+
+    return model, best_epoch, args

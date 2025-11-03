@@ -358,5 +358,131 @@ def parse_train_changeit3d_arguments(notebook_options=None, save_args=True):
     return args
 
 
+def parse_evaluate_changeit3d_arguments(notebook_options=None, save_args=True):
+    parser = argparse.ArgumentParser(
+        description="Evaluation of 3D lang-assisted shape editor"
+    )
+
+    parser.add_argument(
+        "-shape_talk_file", type=str, required=True, help="referential language data"
+    )
+    parser.add_argument("-vocab_file", type=str, required=True, help="vocabulary file")
+    parser.add_argument(
+        "-latent_codes_file",
+        type=str,
+        required=True,
+        help="shape_uid_to_latent_code dictionary",
+    )
+    parser.add_argument(
+        "-pretrained_changeit3d",
+        type=str,
+        required=True,
+        help="string pointing to saved file",
+    )
+    parser.add_argument(
+        "-top_pc_dir",
+        type=str,
+        required=True,
+        help="top dir location of gt pointclouds",
+    )
+
+    parser.add_argument(
+        "--restrict_shape_class",
+        type=str,
+        nargs="*",
+        default=["[]", "[11]", "[21]"],
+    )
+    parser.add_argument(
+        "--pretrained_shape_classifier",
+        type=str,
+        help="if given, will be used to measure the Class-Preservation (CP) score.",
+    )
+    parser.add_argument(
+        "--compute_fpd",
+        default=True,
+        type=str2bool,
+        help="if shape classifier is given and this is True, it will also compute Frechet PointCloud based Distance",
+    )
+    parser.add_argument(
+        "--shape_part_classifiers_top_dir",
+        type=str,
+        help="if given, pretrained classifiers located here will be loaded and will be used to measure "
+        "localized-GD (l-GD) score under Chamfer loss",
+    )
+    parser.add_argument(
+        "--pretrained_oracle_listener",
+        type=str,
+        help="if given, will be used to measure "
+        "the Linguistic-Association Boost (LAB) score",
+    )
+
+    parser.add_argument(
+        "--shape_generator_type",
+        type=str,
+        default="pcae",
+        choices=["pcae", "sgf", "imnet"],
+    )
+    parser.add_argument(
+        "--pretrained_shape_generator",
+        type=str,
+        required=False,
+        help="you must pass it when using pcae",
+    )
+
+    parser.add_argument(
+        "--n_sample_points",
+        type=positive_int,
+        default=2048,
+        help="extracted pointcloud points per shape used for evaluation",
+    )
+
+    parser.add_argument("--sub_sample_dataset", type=positive_int)
+
+    parser.add_argument("--gpu_id", type=int, default=0)
+
+    parser.add_argument(
+        "--save_reconstructions",
+        default=False,
+        type=str2bool,
+        help="save or not the output transformed shapes",
+    )
+
+    parser.add_argument(
+        "--use_timestamp",
+        default=False,
+        type=str2bool,
+        help="use launch time for logging",
+    )
+
+    parser.add_argument(
+        "--experiment_tag", type=str, help="will be used to for logging purposes"
+    )
+
+    parser.add_argument("--random_seed", type=int, default=2022)
+
+    parser.add_argument(
+        "--log_dir", type=str, default="./logs", help="where to save checkpoints, etc."
+    )
+
+    parser.add_argument("--clean_train_val_data", type=str2bool, default=False)
+
+    parser.add_argument("--batch_size", type=int, default=1024)
+
+    parser.add_argument("--num_workers", type=int, default=10)
+
+    parser.add_argument(
+        "--evaluate_retrieval_version",
+        type=str2bool,
+        default=False,
+        help="execute a nearest-neighbor retrieval "
+        "in the latent space instead of decoding "
+        "the transformed shape (see paper for details).",
+    )
+
+    args = _finish_parsing_args(parser, notebook_options, save_args)
+
+    return args
+
+
 if __name__ == "__main__":
     arguments = parse_train_test_pc_ae_arguments(save_args=True)
