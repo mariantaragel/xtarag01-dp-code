@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=2:00:00
 
-DATASET_NAME=removed-front-teeth-v9
+DATASET_NAME=removed-front-teeth-v10
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -26,6 +26,9 @@ RANDOM_SEED=42
 SCALE=True
 GPU_ID=0
 NUM_WORKERS=2
+ENCODER_LAYERS="64 128 128 256 512" # [32, 64, 64, 128, 256, 512] "[32, 64, 64, 128, 256]"
+DECODER_LAYERS="512 512 1024" # "[256, 256, 512]"
+EPOCHS=500 # 700 350
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
@@ -58,7 +61,10 @@ singularity exec --nv \
         --gpu_id $GPU_ID \
         --num_workers $NUM_WORKERS \
         --use_timestamp $TIMESTAMP \
-        --init_lr $LR
+        --encoder_conv_layers $ENCODER_LAYERS \
+        --decoder_fc_neurons $DECODER_LAYERS \
+        --init_lr $LR \
+        --max_train_epochs $EPOCHS
 
 echo "Cloning resluts..."
 

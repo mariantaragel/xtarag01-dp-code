@@ -390,7 +390,7 @@ def parse_evaluate_changeit3d_arguments(notebook_options=None, save_args=True):
         "--restrict_shape_class",
         type=str,
         nargs="*",
-        default=["[]", "[11]", "[21]"],
+        default=[],
     )
     parser.add_argument(
         "--pretrained_shape_classifier",

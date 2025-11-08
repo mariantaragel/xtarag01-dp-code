@@ -12,6 +12,57 @@ from tqdm import tqdm
 N_PC_POINTS = 4096
 
 
+def downsample_vertices(points, n_samples):
+    replace = False
+    if n_samples > len(points):
+        replace = True
+    idx = np.random.choice(len(points), n_samples, replace=replace)
+
+    return points[idx]
+
+
+def flip_vertices_by_yz(vertices, orig_index):
+    if int(orig_index) > 277:
+        vertices[:, 1] = -vertices[:, 1]
+        vertices[:, 2] = -vertices[:, 2]
+
+    return vertices
+
+
+def process_mesh(mesh, orig_index, segmentation, file_name):
+    vertices_tooth_11 = np.array(segmentation["segmentation"]["11"]["vertices"])
+    vertices_tooth_11 = flip_vertices_by_yz(vertices_tooth_11, orig_index)
+    mean_11_x, mean_11_y, mean_11_z = np.mean(vertices_tooth_11, axis=0)
+
+    vertices_tooth_21 = np.array(segmentation["segmentation"]["21"]["vertices"])
+    vertices_tooth_21 = flip_vertices_by_yz(vertices_tooth_21, orig_index)
+    mean_21_x, mean_21_y, mean_21_z = np.mean(vertices_tooth_21, axis=0)
+
+    mean_x = (mean_11_x + mean_21_x) / 2
+    mean_y = (mean_11_y + mean_21_y) / 2
+    mean_z = (mean_11_z + mean_21_z) / 2
+
+    print(orig_index, mean_x, mean_y, mean_z)
+
+    vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
+    vertices = flip_vertices_by_yz(vertices, orig_index)
+
+    vertices[:, 0] = vertices[:, 0] - mean_x
+    vertices[:, 1] = vertices[:, 1] - mean_y
+    vertices[:, 2] = vertices[:, 2] - mean_z
+
+    np.savez_compressed(file_name, pointcloud=vertices)
+
+
+def get_class(act):
+    upper_right_teeth = [str(i) for i in range(11, 19)]
+    upper_left_teeth = [str(i) for i in range(21, 29)]
+    upper_teeth = set(upper_left_teeth + upper_right_teeth)
+    miss_teeth = upper_teeth - act
+    cls = "miss_" + "_".join(sorted(miss_teeth))
+    return cls
+
+
 def filter_meshes(mesh_files, must_included_teeth):
     filtered_mesh_files = []
 
@@ -26,32 +77,7 @@ def filter_meshes(mesh_files, must_included_teeth):
     return filtered_mesh_files
 
 
-def is_flipped(mesh):
-    average_normal = np.mean(mesh.face_normals, axis=0)
-    average_normal_normalized = average_normal / np.linalg.norm(average_normal)
-    avg_x, avg_y, avg_z = average_normal_normalized
-    return avg_x, avg_y, avg_z
-
-
-def downsample_vertices(points, n_samples):
-    replace = False
-    if n_samples > len(points):
-        replace = True
-    idx = np.random.choice(len(points), n_samples, replace=replace)
-
-    return points[idx]
-
-
-def process_mesh(mesh, orig_index, file_name):
-    vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
-    if int(orig_index) > 277:
-        vertices[:, 1] = -vertices[:, 1] + 20
-        vertices[:, 2] = -vertices[:, 2]
-
-    np.savez_compressed(file_name, pointcloud=vertices)
-
-
-def remove_tooth(mesh_file, dataset_name, args, teeth_to_remove):
+def remove_tooth(mesh_file, args):
     segmentation_file = mesh_file[:-3] + "json"
 
     mesh_file_splitted = mesh_file[:-4].split("/")
@@ -61,15 +87,16 @@ def remove_tooth(mesh_file, dataset_name, args, teeth_to_remove):
     with open(segmentation_file, "r") as f:
         segmentation = json.load(f)
 
-    with open(f"{args.data_dir}/train-test-split.json", "r") as f:
+    with open(args.split_file, "r") as f:
         split = json.load(f)
 
-    file_name_prefix = f"{args.save_dir}/{dataset_name}/point-clouds"
+    file_name_prefix = f"{args.save_dir}/{args.dataset_name}/point-clouds"
     Path(file_name_prefix).mkdir(parents=True, exist_ok=True)
 
     mesh = trimesh.load(mesh_file)
-    source_file_name = f"{file_name_prefix}/{orig_index}_{orig_name}_source.npz"
-    process_mesh(mesh, orig_index, source_file_name)
+    source_file_name = f"/{orig_index}_{orig_name}_source.npz"
+    source_file_name_path = file_name_prefix + source_file_name
+    process_mesh(mesh, orig_index, segmentation, source_file_name_path)
 
     source_file_names = []
     target_file_names = []
@@ -84,9 +111,8 @@ def remove_tooth(mesh_file, dataset_name, args, teeth_to_remove):
     test_indices = other_indices[: len(other_indices) // 2]
     val_indices = other_indices[len(other_indices) // 2 :]
 
-    teeth = list(
-        set(teeth_to_remove).intersection(set(segmentation["segmentation"].keys()))
-    )
+    patient_teeth = set(segmentation["segmentation"].keys())
+    teeth = list(set(args.teeth_to_remove).intersection(patient_teeth))
 
     tree = cKDTree(mesh.vertices)
     for tooth in teeth:
@@ -99,15 +125,14 @@ def remove_tooth(mesh_file, dataset_name, args, teeth_to_remove):
         new_mesh = mesh.copy()
         new_mesh.update_vertices(mask)
 
-        target_file_name = (
-            f"{file_name_prefix}/{orig_index}_{orig_name}_{tooth}_target.npz"
-        )
-        process_mesh(mesh, orig_index, target_file_name)
+        target_file_name = f"/{orig_index}_{orig_name}_{tooth}_target.npz"
+        target_file_name_path = file_name_prefix + target_file_name
+        process_mesh(new_mesh, orig_index, segmentation, target_file_name_path)
 
         utterance = f"remove tooth {tooth}"
         object_class = "upper jaw"
-        source_object_class = "[]"
-        target_object_class = f"[{tooth}]"
+        source_object_class = get_class(patient_teeth)
+        target_object_class = get_class(patient_teeth - set([tooth]))
 
         source_file_names.append(source_file_name)
         target_file_names.append(target_file_name)
@@ -123,6 +148,7 @@ def remove_tooth(mesh_file, dataset_name, args, teeth_to_remove):
         elif orig_index in val_indices:
             splits.append("val")
         else:
+            print("NOT in splits:", orig_index)
             splits.append("train")
 
     return (
@@ -141,15 +167,21 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", help="Path to point cloud data")
     parser.add_argument("--dataset_name", help="Name of the dataset")
     parser.add_argument("--save_dir", help="Where to store created dataset")
+    parser.add_argument("--split_file", help="Path to split file")
+    parser.add_argument(
+        "--teeth_to_remove",
+        type=str,
+        nargs="*",
+        default=["11", "12", "21", "22"],
+        help="Which teeth will be removed from original shape",
+    )
     args = parser.parse_args()
 
-    teeth_to_remove = ["11", "21"]
-    dataset_name = args.dataset_name
-    path = args.data_dir + "/Orthodontic_dental_dataset"
-
-    meshes = [f.path for f in os.scandir(path) if f.is_dir()]
-    meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
+    meshes = [f.path for f in os.scandir(args.data_dir) if f.is_dir()]
     meshes_upper_final = [m + "/final/U_Final.stl" for m in meshes]
+    meshes_upper_final = filter_meshes(meshes_upper_final, ["11", "21"])
+    meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
+    meshes_upper_ori = filter_meshes(meshes_upper_ori, ["11", "21"])
 
     meshes_to_process = sorted(meshes_upper_final + meshes_upper_ori)
 
@@ -170,7 +202,7 @@ if __name__ == "__main__":
             source_object_class,
             target_object_class,
             split,
-        ) = remove_tooth(mesh_file, dataset_name, args, teeth_to_remove)
+        ) = remove_tooth(mesh_file, args)
 
         source_uids += source_uid
         target_uids += target_uid
@@ -195,6 +227,6 @@ if __name__ == "__main__":
         }
     )
 
-    split_folder = f"{args.save_dir}/{dataset_name}/splits"
+    split_folder = f"{args.save_dir}/{args.dataset_name}/splits"
     Path(split_folder).mkdir(parents=True, exist_ok=True)
     df.to_csv(f"{split_folder}/raw-split.csv", index=False)

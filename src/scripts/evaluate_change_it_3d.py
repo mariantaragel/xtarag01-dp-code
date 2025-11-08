@@ -122,7 +122,7 @@ else:
 transformed_shapes = transformation_results["recons"][1]
 language_used = [vocab.decode_print(s) for s in transformation_results["tokens"]]
 gt_pc_files = check_loader.dataset.df.source_uid.apply(
-    lambda x: osp.join(args.top_pc_dir, x + ".npz")
+    lambda x: osp.join(args.top_pc_dir, x.lstrip("/"))
 ).tolist()
 
 if args.save_reconstructions:
@@ -150,7 +150,7 @@ gt_pcs = parallel_apply(
 )  # or, gt_pcs = [pc_loader(m) for m in gt_pc_files]
 gt_pcs = np.array(gt_pcs)
 
-sentences = ndf.utterance_spelled.values
+sentences = ndf.utterance.values
 gt_classes = gt_classes.values
 results_on_metrics = run_all_metrics(
     transformed_shapes, gt_pcs, gt_classes, sentences, vocab, args, logger
@@ -175,7 +175,7 @@ if args.evaluate_retrieval_version:
     retrieved_shapes_uids = all_train_shapes[n_ids.squeeze().tolist()]
 
     retrieved_files = [
-        osp.join(args.top_pc_dir, x + ".npz") for x in retrieved_shapes_uids
+        osp.join(args.top_pc_dir, x.lstrip("/")) for x in retrieved_shapes_uids
     ]
     pc_loader = partial(
         pc_loader_from_npz, n_samples=args.n_sample_points, random_seed=args.random_seed
