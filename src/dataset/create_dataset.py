@@ -71,7 +71,7 @@ def filter_meshes(mesh_files, must_included_teeth):
         with open(json_file, "r") as f:
             mesh_data = json.load(f)
             teeth = mesh_data["segmentation"].keys()
-            if set(must_included_teeth).issubset(teeth):
+            if set(must_included_teeth) == teeth:
                 filtered_mesh_files.append(mesh_file)
 
     return filtered_mesh_files
@@ -177,11 +177,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    upper_right_teeth = [str(i) for i in range(11, 18)]
+    upper_left_teeth = [str(i) for i in range(21, 28)]
+    baseline = upper_right_teeth + upper_left_teeth
+
     meshes = [f.path for f in os.scandir(args.data_dir) if f.is_dir()]
     meshes_upper_final = [m + "/final/U_Final.stl" for m in meshes]
-    meshes_upper_final = filter_meshes(meshes_upper_final, ["11", "21"])
+    meshes_upper_final = filter_meshes(meshes_upper_final, baseline)
     meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
-    meshes_upper_ori = filter_meshes(meshes_upper_ori, ["11", "21"])
+    meshes_upper_ori = filter_meshes(meshes_upper_ori, baseline)
 
     meshes_to_process = sorted(meshes_upper_final + meshes_upper_ori)
 

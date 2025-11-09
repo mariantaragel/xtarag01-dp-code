@@ -2,9 +2,9 @@
 #PBS -N train_change_it_3d_job
 #PBS -q gpu
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
-#PBS -l walltime=2:00:00
+#PBS -l walltime=4:00:00
 
-DATASET_NAME=removed-front-teeth-v9
+DATASET_NAME=removed-front-teeth-v10
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -27,8 +27,8 @@ SELF_CONTRAST=True
 NET_ABLATION=decoupling_mag_direction
 NUM_WORKERS=2
 
-BATCH_SIZE=96
-LR=0.00075
+BATCH_SIZE=96 # 126 1024
+LR=0.00075 # 0.001
 IDENTITY_PENALTY=0
 WEIGHT_DECAY=0
 

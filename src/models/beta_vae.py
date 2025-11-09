@@ -1,9 +1,3 @@
-"""
-PC-AE.
-Originally created at 5/22/20, for Python 3.x
-2022 Panos Achlioptas (optas.github.io)
-"""
-
 import torch
 from torch import nn
 
@@ -12,15 +6,20 @@ from losses.emd import emd_loss
 from utils.stats import AverageMeter
 
 
-class PointcloudAutoencoder(nn.Module):
-    def __init__(self, encoder, decoder):
+class PointcloudBetaVAE(nn.Module):
+    def __init__(self, encoder, decoder, latent_dim, beta=1.0):
         """AE initialization
         :param encoder: nn.Module acting as a point-cloud encoder.
         :param decoder: nn.Module acting as a point-cloud decoder.
         """
-        super(PointcloudAutoencoder, self).__init__()
+        super(PointcloudBetaVAE, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
+        self.beta = beta
+        self.latent_dim = latent_dim
+
+        self.fc_mu = nn.Linear(latent_dim, latent_dim)
+        self.fc_var = nn.Linear(latent_dim, latent_dim)
 
     def __call__(self, pointclouds, bcn_format=True):
         """
@@ -33,9 +32,18 @@ class PointcloudAutoencoder(nn.Module):
         if bcn_format:
             pointclouds = pointclouds.transpose(2, 1).contiguous()
 
-        z = self.encoder(pointclouds)
+        features = self.encoder(pointclouds)
+        mu = self.fc_mu(features)
+        log_var = self.fc_var(features)
+        z = self.reparametrization(mu, log_var)
+
         recon = self.decoder(z).view([b_size, n_points, 3])
-        return recon
+        return recon, mu, log_var
+
+    def reparametrization(self, mu, log_var):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.rand_like(std)
+        return mu + eps * std
 
     @torch.no_grad()
     def embed(self, pointclouds, bcn_format=True):
@@ -46,7 +54,11 @@ class PointcloudAutoencoder(nn.Module):
         """
         if bcn_format:
             pointclouds = pointclouds.transpose(2, 1).contiguous()
-        return self.encoder(pointclouds)
+
+        features = self.encoder(pointclouds)
+        mu = self.fc_mu(features)
+
+        return mu
 
     @torch.no_grad()
     def embed_dataset(self, loader, device="cuda"):
@@ -73,25 +85,36 @@ class PointcloudAutoencoder(nn.Module):
         :return: (float), average loss for the epoch.
         """
         self.train()
-        loss_meter = AverageMeter()
+        total_loss_meter = AverageMeter()
+        recon_loss_meter = AverageMeter()
+        kld_loss_meter = AverageMeter()
+
         for batch in loader:
             b_pc = batch["pointcloud"].to(device)
-            recon = self(b_pc)
+            recon, mu, log_var = self(b_pc)
 
             # Backward to optimize according to Chamfer loss.
             optimizer.zero_grad()
             if loss_rule == "chamfer":
-                loss = chamfer_loss(b_pc, recon).mean()
+                recon_loss = chamfer_loss(b_pc, recon).mean()
             elif loss_rule == "emd":
                 raise NotImplementedError(" First install earth's mover distance loss")
                 # loss = emd_loss(b_pc, recon, transpose=False).mean()
             else:
                 raise NotImplementedError()
 
-            loss.backward()
+            kld_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
+            kld_loss = kld_loss.mean()
+
+            total_loss = recon_loss + self.beta * kld_loss
+
+            total_loss.backward()
             optimizer.step()
-            loss_meter.update(loss.item(), len(b_pc))
-        return loss_meter.avg
+
+            total_loss_meter.update(total_loss.item(), len(b_pc))
+            recon_loss_meter.update(recon_loss.item(), len(b_pc))
+            kld_loss_meter.update(kld_loss.item(), len(b_pc))
+        return total_loss_meter.avg, recon_loss_meter.avg, kld_loss_meter.avg
 
     @torch.no_grad()
     def reconstruct(self, loader, device="cuda", loss_rule="chamfer"):
@@ -108,7 +131,7 @@ class PointcloudAutoencoder(nn.Module):
         self.eval()
         for batch in loader:
             b_pc = batch["pointcloud"].to(device)
-            recon = self(b_pc)
+            recon, mu, log_var = self(b_pc)
             if loss_rule == "chamfer":
                 loss = chamfer_loss(b_pc, recon)
             elif loss_rule == "emd":

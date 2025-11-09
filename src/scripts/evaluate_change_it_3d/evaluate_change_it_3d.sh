@@ -2,9 +2,9 @@
 #PBS -N evaluate_change_it_3d_job
 #PBS -q gpu
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
-#PBS -l walltime=2:00:00
+#PBS -l walltime=4:00:00
 
-DATASET_NAME=removed-front-teeth-v9
+DATASET_NAME=removed-front-teeth-v7
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -23,7 +23,7 @@ PC_AE_FILE=$HOME_DIR/pretrained/$DATASET_NAME/pc_ae/best_model.pt
 GPU_ID=0
 N_PC_POINTS=4096
 SEED=42
-BATCH=96
+BATCH=96 # 126 1024
 NUM_WORKERS=2
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"

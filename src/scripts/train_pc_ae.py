@@ -16,7 +16,7 @@ from in_out.pointcloud import (
     prepare_pointcloud_dataloaders,
     prepare_vanilla_pointcloud_datasets,
 )
-from models.model_descriptions import describe_pc_ae
+from models.model_descriptions import describe_pc_ae, describe_pc_beta_vae
 
 # Argument-handling.
 args = parse_train_test_pc_ae_arguments(save_args=True)
@@ -27,7 +27,16 @@ data_loaders = prepare_pointcloud_dataloaders(datasets, args)
 
 # Make an AE.
 device = torch.device("cuda:" + str(args.gpu_id))
-model = describe_pc_ae(args).to(device)
+
+if args.latent_backbone == "pc_ae":
+    model = describe_pc_ae(args).to(device)
+elif args.latent_backbone == "pc_beta_vae":
+    model = describe_pc_beta_vae(args).to(device)
+else:
+    raise NotImplementedError()
+
+print("PC AE Architecture:")
+print(model)
 
 if args.load_pretrained_model:
     best_epoch = load_state_dicts(args.pretrained_model_file, model=model)
@@ -57,7 +66,7 @@ if args.do_training:
 
         for epoch in tqdm.tqdm(range(start_epoch, start_epoch + args.max_train_epochs)):
             np.random.seed()
-            train_loss = model.train_for_one_epoch(
+            total_loss, recon_loss, kld_loss = model.train_for_one_epoch(
                 data_loaders["train"], optimizer, device=device
             )
             val_loss = model.reconstruct(data_loaders["val"], device=device)[-1]
@@ -67,13 +76,19 @@ if args.do_training:
                 data_loaders["test"], device=device
             )
             print(
-                "{}, {:.6f}, {:.6f}, {:.6f}".format(
-                    epoch, train_loss, test_loss, val_loss
+                "{}, total_loss: {:.6f}, recon_loss: {:.6f}, kld_loss: {:.6f}, test_loss: {:.6f}, val_loss: {:.6f}".format(
+                    epoch, total_loss, recon_loss, kld_loss, test_loss, val_loss
                 ),
                 end=" ",
             )
             run.log(
-                {"train_loss": train_loss, "test_loss": test_loss, "val_loss": val_loss}
+                {
+                    "train_total_loss": total_loss,
+                    "train_recon_loss": recon_loss,
+                    "train_kld_loss": kld_loss,
+                    "test_loss": test_loss,
+                    "val_loss": val_loss,
+                }
             )
 
             if val_loss < min_val_loss:
