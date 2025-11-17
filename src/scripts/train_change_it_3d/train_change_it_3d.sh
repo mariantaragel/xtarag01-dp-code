@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=4:00:00
 
-DATASET_NAME=removed-front-teeth-v10
+DATASET_NAME=removed-front-teeth-v11
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -27,10 +27,14 @@ SELF_CONTRAST=True
 NET_ABLATION=decoupling_mag_direction
 NUM_WORKERS=2
 
-BATCH_SIZE=96 # 126 1024
-LR=0.00075 # 0.001
+BATCH_SIZE=1024
+LR=0.0005
 IDENTITY_PENALTY=0
 WEIGHT_DECAY=0
+
+EPOCHS=150
+TRAIN_PATIENCE=1000
+LR_PATIENCE=10
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
@@ -67,7 +71,10 @@ singularity exec --nv \
         --self_contrast $SELF_CONTRAST \
         --use_timestamp False \
         --init_lr $LR \
-        --weight_decay $WEIGHT_DECAY
+        --weight_decay $WEIGHT_DECAY \
+        --train_patience $TRAIN_PATIENCE \
+        --lr_patience $LR_PATIENCE \
+        --max_train_epochs $EPOCHS
 
 echo "Cloning resluts ..."
 

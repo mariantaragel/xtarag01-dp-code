@@ -10,6 +10,7 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import torch
+import wandb
 
 from evaluation.all_metrics import run_all_metrics
 from evaluation.auxiliary import (
@@ -42,6 +43,11 @@ df, shape_to_latent_code, shape_latent_dim, vocab = prepare_input_data(args, log
 ##
 def to_stimulus_func(x):
     return shape_to_latent_code[x]
+
+
+def swap_x_axis(pc):
+    pc[:, 0] = -pc[:, 0]
+    return pc
 
 
 split = "test"
@@ -141,53 +147,78 @@ if transformed_shapes.shape[-2] != args.n_sample_points:
         ]
     )
 
-## Load ground-truth input point-clouds
-pc_loader = partial(
-    pc_loader_from_npz, n_samples=args.n_sample_points, random_seed=args.random_seed
-)
-gt_pcs = parallel_apply(
-    gt_pc_files, pc_loader, n_processes=20
-)  # or, gt_pcs = [pc_loader(m) for m in gt_pc_files]
-gt_pcs = np.array(gt_pcs)
-
-sentences = ndf.utterance.values
-gt_classes = gt_classes.values
-results_on_metrics = run_all_metrics(
-    transformed_shapes, gt_pcs, gt_classes, sentences, vocab, args, logger
-)
-
-# Save (pickle) results
-pickle_data(osp.join(args.log_dir, "evaluation_metric_results.pkl"), results_on_metrics)
-
-
-if args.evaluate_retrieval_version:
-    ## Nearest neighbor (retrieval) baseline
-    df_temp = pd.read_csv(args.shape_talk_file)
-    all_train_shapes = df_temp[df_temp.changeit_split == "train"]["source_uid"].unique()
-    print("number of all training shapes", len(all_train_shapes))
-
-    train_latens = torch.from_numpy(
-        np.array([shape_to_latent_code[s] for s in all_train_shapes])
-    )
-    transformed_latents = torch.from_numpy(transformation_results["z_codes"][1])
-
-    _, n_ids = k_euclidean_neighbors(1, transformed_latents, train_latens)
-    retrieved_shapes_uids = all_train_shapes[n_ids.squeeze().tolist()]
-
-    retrieved_files = [
-        osp.join(args.top_pc_dir, x.lstrip("/")) for x in retrieved_shapes_uids
-    ]
+with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
+    ## Load ground-truth input point-clouds
     pc_loader = partial(
         pc_loader_from_npz, n_samples=args.n_sample_points, random_seed=args.random_seed
     )
-    retrieved_pcs = np.array(parallel_apply(retrieved_files, pc_loader, n_processes=20))
+    gt_pcs = parallel_apply(
+        gt_pc_files, pc_loader, n_processes=20
+    )  # or, gt_pcs = [pc_loader(m) for m in gt_pc_files]
+    gt_pcs = np.array(gt_pcs)
 
-    results_on_retrieval_version = run_all_metrics(
-        retrieved_pcs, gt_pcs, gt_classes, sentences, vocab, args, logger
+    sentences = ndf.utterance.values
+    gt_classes = gt_classes.values
+    results_on_metrics = run_all_metrics(
+        transformed_shapes, gt_pcs, gt_classes, sentences, vocab, args, logger
     )
 
     # Save (pickle) results
     pickle_data(
-        osp.join(args.log_dir, "evaluation_metric_results_for_retrieval.pkl"),
-        results_on_retrieval_version,
+        osp.join(args.log_dir, "evaluation_metric_results.pkl"), results_on_metrics
     )
+
+    if args.evaluate_retrieval_version:
+        ## Nearest neighbor (retrieval) baseline
+        df_temp = pd.read_csv(args.shape_talk_file)
+        all_train_shapes = df_temp[df_temp.changeit_split == "train"][
+            "source_uid"
+        ].unique()
+        print("number of all training shapes", len(all_train_shapes))
+
+        train_latens = torch.from_numpy(
+            np.array([shape_to_latent_code[s] for s in all_train_shapes])
+        )
+        transformed_latents = torch.from_numpy(transformation_results["z_codes"][1])
+
+        _, n_ids = k_euclidean_neighbors(1, transformed_latents, train_latens)
+        retrieved_shapes_uids = all_train_shapes[n_ids.squeeze().tolist()]
+
+        retrieved_files = [
+            osp.join(args.top_pc_dir, x.lstrip("/")) for x in retrieved_shapes_uids
+        ]
+        pc_loader = partial(
+            pc_loader_from_npz,
+            n_samples=args.n_sample_points,
+            random_seed=args.random_seed,
+        )
+        retrieved_pcs = np.array(
+            parallel_apply(retrieved_files, pc_loader, n_processes=20)
+        )
+
+        results_on_retrieval_version = run_all_metrics(
+            retrieved_pcs, gt_pcs, gt_classes, sentences, vocab, args, logger
+        )
+
+        table = wandb.Table(["Input", "Text", "Output", "Nearest"])
+
+        for i in range(0, 46, 5):
+            input = np.array(gt_pcs[i])
+            text = sentences[i]
+            recon = np.array(transformed_shapes[i])
+            retrieved = np.array(retrieved_pcs[i])
+
+            input_shape = wandb.Object3D(swap_x_axis(input))
+            output_shape = wandb.Object3D(swap_x_axis(recon))
+            retrieved_shape = wandb.Object3D(swap_x_axis(retrieved))
+            table.add_data(input_shape, text, output_shape, retrieved_shape)
+
+        run.log({f"{split}_examples": table})
+
+        # Save (pickle) results
+        pickle_data(
+            osp.join(args.log_dir, "evaluation_metric_results_for_retrieval.pkl"),
+            results_on_retrieval_version,
+        )
+
+wandb.finish()

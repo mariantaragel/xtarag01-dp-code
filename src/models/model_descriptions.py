@@ -9,6 +9,7 @@ from .beta_vae import PointcloudBetaVAE
 from .changeit3d_net import LatentDirectionFinder
 from .listening_oriented import TransformerModel, TransformerModelFeature
 from .mlp import MLP
+from .pc_ae_cls import PointcloudAutoencoderCls
 from .point_net import PointNet
 from .pointcloud_autoencoder import PointcloudAutoencoder
 
@@ -31,6 +32,33 @@ def describe_pc_ae(args):
         raise NotImplementedError()
 
     model = PointcloudAutoencoder(ae_encoder, ae_decoder)
+    return model
+
+
+def describe_pc_ae_cls(args):
+    # Make an AE.
+    if args.encoder_net == "pointnet":
+        ae_encoder = PointNet(init_feat_dim=3, conv_dims=args.encoder_conv_layers)
+        encoder_latent_dim = args.encoder_conv_layers[-1]
+    else:
+        raise NotImplementedError()
+
+    if args.decoder_net == "mlp":
+        ae_decoder = MLP(
+            in_feat_dims=encoder_latent_dim,
+            out_channels=args.decoder_fc_neurons + [args.n_pc_points * 3],
+            b_norm=False,
+        )
+    else:
+        raise NotImplementedError()
+
+    ae_classifier = MLP(
+        in_feat_dims=encoder_latent_dim,
+        out_channels=args.classifier_fc_neurons + [3],
+        b_norm=False,
+    )
+
+    model = PointcloudAutoencoderCls(ae_encoder, ae_decoder, ae_classifier, args.alfa)
     return model
 
 

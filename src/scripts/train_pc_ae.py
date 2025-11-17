@@ -16,7 +16,11 @@ from in_out.pointcloud import (
     prepare_pointcloud_dataloaders,
     prepare_vanilla_pointcloud_datasets,
 )
-from models.model_descriptions import describe_pc_ae, describe_pc_beta_vae
+from models.model_descriptions import (
+    describe_pc_ae,
+    describe_pc_ae_cls,
+    describe_pc_beta_vae,
+)
 
 # Argument-handling.
 args = parse_train_test_pc_ae_arguments(save_args=True)
@@ -32,8 +36,16 @@ if args.latent_backbone == "pc_ae":
     model = describe_pc_ae(args).to(device)
 elif args.latent_backbone == "pc_beta_vae":
     model = describe_pc_beta_vae(args).to(device)
+elif args.latent_backbone == "pc_ae_cls":
+    model = describe_pc_ae_cls(args).to(device)
 else:
     raise NotImplementedError()
+
+
+def swap_x_axis(pc):
+    pc[:, 0] = -pc[:, 0]
+    return pc
+
 
 print("PC AE Architecture:")
 print(model)
@@ -43,7 +55,9 @@ if args.load_pretrained_model:
     print("Loading pretrained model @epoch", best_epoch)
     print("Losses for this model/epoch:")
     for split in ["train", "val", "test"]:
-        loss = model.reconstruct(data_loaders[split], device=device)[-1]
+        loss = model.reconstruct(
+            data_loaders[split], device=device, loss_rule=args.loss_function
+        )[-1]
         print(split, loss)
 
 # Train it.
@@ -54,7 +68,7 @@ if args.do_training:
     # Optimization
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.5, patience=args.lr_patience, min_lr=5e-7
+        optimizer, factor=0.5, patience=args.lr_patience, min_lr=5e-10
     )
 
     start_epoch = 1
@@ -66,29 +80,28 @@ if args.do_training:
 
         for epoch in tqdm.tqdm(range(start_epoch, start_epoch + args.max_train_epochs)):
             np.random.seed()
-            total_loss, recon_loss, kld_loss = model.train_for_one_epoch(
-                data_loaders["train"], optimizer, device=device
+            train_loss = model.train_for_one_epoch(
+                data_loaders["train"],
+                optimizer,
+                device=device,
+                loss_rule=args.loss_function,
             )
-            val_loss = model.reconstruct(data_loaders["val"], device=device)[-1]
+            val_loss = model.reconstruct(
+                data_loaders["val"], device=device, loss_rule=args.loss_function
+            )[-1]
             lr_scheduler.step(val_loss)
 
             test_recons, _, _, test_loss = model.reconstruct(
-                data_loaders["test"], device=device
+                data_loaders["test"], device=device, loss_rule=args.loss_function
             )
             print(
-                "{}, total_loss: {:.6f}, recon_loss: {:.6f}, kld_loss: {:.6f}, test_loss: {:.6f}, val_loss: {:.6f}".format(
-                    epoch, total_loss, recon_loss, kld_loss, test_loss, val_loss
+                "{}, {:.6f}, {:.6f}, {:.6f}".format(
+                    epoch, train_loss, test_loss, val_loss
                 ),
                 end=" ",
             )
             run.log(
-                {
-                    "train_total_loss": total_loss,
-                    "train_recon_loss": recon_loss,
-                    "train_kld_loss": kld_loss,
-                    "test_loss": test_loss,
-                    "val_loss": val_loss,
-                }
+                {"train_loss": train_loss, "test_loss": test_loss, "val_loss": val_loss}
             )
 
             if val_loss < min_val_loss:
@@ -118,14 +131,17 @@ if args.do_training:
         print("losses at this epoch:", best_epoch)
         for split in ["train", "test"]:
             reconstructions, inputs, losses_per_example, loss = model.reconstruct(
-                data_loaders[split], device=device
+                data_loaders[split], device=device, loss_rule=args.loss_function
             )
 
             table = wandb.Table(["Input", "Output"])
 
             for i in range(0, 46, 5):
-                input_shape = wandb.Object3D(np.array(inputs[i]))
-                output_shape = wandb.Object3D(np.array(reconstructions[i]))
+                input = np.array(inputs[i])
+                recon = np.array(reconstructions[i])
+
+                input_shape = wandb.Object3D(swap_x_axis(input))
+                output_shape = wandb.Object3D(swap_x_axis(recon))
                 table.add_data(input_shape, output_shape)
 
             run.log({f"{split}_examples": table})

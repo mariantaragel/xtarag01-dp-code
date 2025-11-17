@@ -21,7 +21,7 @@ cd $SCRATCHDIR
 cp -r $PROJECT_DIR .
 cd xtarag01-dp-code/src
 
-TEETH_TO_REMOVE="11 12 21 22"
+TEETH_TO_REMOVE="11 15"
 
 singularity exec \
     -B $SCRATCHDIR:/scratch \

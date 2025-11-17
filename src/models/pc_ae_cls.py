@@ -2,19 +2,22 @@ import torch
 from torch import nn
 
 from losses.chamfer import chamfer_loss
+from losses.cross_entropy import cross_entropy
 from losses.emd import emd_loss
 from utils.stats import AverageMeter
 
 
-class PointcloudAutoencoder(nn.Module):
-    def __init__(self, encoder, decoder):
+class PointcloudAutoencoderCls(nn.Module):
+    def __init__(self, encoder, decoder, classifier, alfa=1.0):
         """AE initialization
         :param encoder: nn.Module acting as a point-cloud encoder.
         :param decoder: nn.Module acting as a point-cloud decoder.
         """
-        super(PointcloudAutoencoder, self).__init__()
+        super(PointcloudAutoencoderCls, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
+        self.classifier = classifier
+        self.alfa = alfa
 
     def __call__(self, pointclouds, bcn_format=True):
         """
@@ -29,7 +32,8 @@ class PointcloudAutoencoder(nn.Module):
 
         z = self.encoder(pointclouds)
         recon = self.decoder(z).view([b_size, n_points, 3])
-        return recon
+        logits = self.classifier(z)
+        return recon, logits
 
     @torch.no_grad()
     def embed(self, pointclouds, bcn_format=True):
@@ -70,18 +74,20 @@ class PointcloudAutoencoder(nn.Module):
         loss_meter = AverageMeter()
         for batch in loader:
             b_pc = batch["pointcloud"].to(device)
-            recon = self(b_pc)
+            b_cls = batch["model_class"].to(device)
+            recon, logits = self(b_pc)
 
+            # Backward to optimize according to Chamfer loss.
             optimizer.zero_grad()
             if loss_rule == "chamfer":
-                loss = chamfer_loss(b_pc, recon).mean()
+                recon_loss = chamfer_loss(b_pc, recon).mean()
             elif loss_rule == "emd":
-                loss_per_example = (
-                    emd_loss(b_pc, recon, transpose=False) / b_pc.shape[1]
-                )
-                loss = loss_per_example.mean()
+                recon_loss = emd_loss(b_pc, recon, transpose=False).mean()
             else:
                 raise NotImplementedError()
+
+            cls_loss = cross_entropy(logits, b_cls).mean()
+            loss = recon_loss + self.alfa * cls_loss
 
             loss.backward()
             optimizer.step()
@@ -103,11 +109,11 @@ class PointcloudAutoencoder(nn.Module):
         self.eval()
         for batch in loader:
             b_pc = batch["pointcloud"].to(device)
-            recon = self(b_pc)
+            recon, logits = self(b_pc)
             if loss_rule == "chamfer":
                 loss = chamfer_loss(b_pc, recon)
             elif loss_rule == "emd":
-                loss = emd_loss(b_pc, recon, transpose=False) / b_pc.shape[1]
+                loss = emd_loss(b_pc, recon, transpose=False)
             else:
                 raise NotImplementedError()
             losses_per_example.extend(loss.cpu())

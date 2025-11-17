@@ -63,7 +63,7 @@ def get_class(act):
     return cls
 
 
-def filter_meshes(mesh_files, must_included_teeth):
+def filter_meshes(mesh_files):
     filtered_mesh_files = []
 
     for mesh_file in mesh_files:
@@ -71,7 +71,7 @@ def filter_meshes(mesh_files, must_included_teeth):
         with open(json_file, "r") as f:
             mesh_data = json.load(f)
             teeth = mesh_data["segmentation"].keys()
-            if set(must_included_teeth) == teeth:
+            if set(["11", "21"]).issubset(teeth):
                 filtered_mesh_files.append(mesh_file)
 
     return filtered_mesh_files
@@ -131,8 +131,8 @@ def remove_tooth(mesh_file, args):
 
         utterance = f"remove tooth {tooth}"
         object_class = "upper jaw"
-        source_object_class = get_class(patient_teeth)
-        target_object_class = get_class(patient_teeth - set([tooth]))
+        source_object_class = "baseline"
+        target_object_class = f"miss_{tooth}"
 
         source_file_names.append(source_file_name)
         target_file_names.append(target_file_name)
@@ -148,7 +148,7 @@ def remove_tooth(mesh_file, args):
         elif orig_index in val_indices:
             splits.append("val")
         else:
-            print("NOT in splits:", orig_index)
+            print("NOT in splits:", orig_index)  # 0736, 0818
             splits.append("train")
 
     return (
@@ -177,16 +177,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    upper_right_teeth = [str(i) for i in range(11, 18)]
-    upper_left_teeth = [str(i) for i in range(21, 28)]
-    baseline = upper_right_teeth + upper_left_teeth
-
     meshes = [f.path for f in os.scandir(args.data_dir) if f.is_dir()]
     meshes_upper_final = [m + "/final/U_Final.stl" for m in meshes]
-    meshes_upper_final = filter_meshes(meshes_upper_final, baseline)
+    meshes_upper_final = filter_meshes(meshes_upper_final)
     meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
-    meshes_upper_ori = filter_meshes(meshes_upper_ori, baseline)
-
+    meshes_upper_ori = filter_meshes(meshes_upper_ori)
     meshes_to_process = sorted(meshes_upper_final + meshes_upper_ori)
 
     source_uids = []

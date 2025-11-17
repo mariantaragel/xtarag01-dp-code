@@ -109,10 +109,15 @@ def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
     parser.add_argument(
         "--decoder_fc_neurons", type=int, nargs="+", default=[256, 256, 512]
     )
+    parser.add_argument("--classifier_fc_neurons", type=int, nargs="+", default=[128])
     parser.add_argument(
-        "--latent_backbone", type=str, default="pc_ae", choices=["pc_ae", "pc_beta_vae"]
+        "--latent_backbone",
+        type=str,
+        default="pc_ae",
+        choices=["pc_ae", "pc_beta_vae", "pc_ae_cls"],
     )
-    parser.add_argument("--beta", type=float, default=4.0)
+    parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument("--alfa", type=float, default=1.0)
 
     # Training parameters
     parser.add_argument("--do_training", type=str2bool, default=True)
