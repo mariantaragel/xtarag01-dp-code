@@ -102,11 +102,11 @@ def load_pretrained_pc_ae(model_file):
     config_file = osp.join(osp.dirname(model_file), "config.json.txt")
     pc_ae_args = read_saved_args(config_file)
 
-    if pc_ae_args.architecture == "pc_ae":
+    if pc_ae_args.latent_backbone == "pc_ae":
         pc_ae = describe_pc_ae(pc_ae_args)
-    elif pc_ae_args.architecture == "pc_ae_cls":
+    elif pc_ae_args.latent_backbone == "pc_ae_cls":
         pc_ae = describe_pc_ae_cls(pc_ae_args)
-    elif pc_ae_args.architecture == "pc_beta_vae":
+    elif pc_ae_args.latent_backbone == "pc_beta_vae":
         pc_ae = describe_pc_beta_vae(pc_ae_args)
     else:
         raise NotImplementedError()

@@ -318,13 +318,6 @@ def parse_train_changeit3d_arguments(notebook_options=None, save_args=True):
         choices=["pcae", "sgf", "imnet"],
     )
 
-    parser.add_argument(
-        "--architecture",
-        type=str,
-        default="pc_ae",
-        choices=["pc_ae", "pc_ae_cls", "pc_beta_vae"],
-    )
-
     # Dataset oriented
     parser.add_argument("--restrict_shape_class", type=str, nargs="*", default=[])
     parser.add_argument("--add_shape_glot", type=str2bool, default=False)

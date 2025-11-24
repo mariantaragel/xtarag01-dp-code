@@ -32,10 +32,9 @@ LR=0.0005
 IDENTITY_PENALTY=0
 WEIGHT_DECAY=0
 
-EPOCHS=150
+EPOCHS=300
 TRAIN_PATIENCE=1000
 LR_PATIENCE=10
-ARCHITECTURE=pc_ae_cls
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
@@ -75,8 +74,7 @@ singularity exec --nv \
         --weight_decay $WEIGHT_DECAY \
         --train_patience $TRAIN_PATIENCE \
         --lr_patience $LR_PATIENCE \
-        --max_train_epochs $EPOCHS \
-        --architecture $ARCHITECTURE
+        --max_train_epochs $EPOCHS
 
 echo "Cloning resluts ..."
 

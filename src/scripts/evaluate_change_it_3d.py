@@ -81,6 +81,7 @@ c3d_net, best_epoch, c3d_args = load_pretrained_changeit3d_net(
 )
 device = torch.device("cuda:" + str(args.gpu_id))
 c3d_net = c3d_net.to(device)
+print(c3d_net)
 logger.info(
     f"The model is variant `{c3d_args.shape_editor_variant}` trained with {c3d_args.identity_penalty} identity penalty and Self-Contrast={c3d_args.self_contrast}."
 )

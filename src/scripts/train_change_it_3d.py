@@ -73,6 +73,7 @@ model = ablations_changeit3d_net(
 )
 device = torch.device("cuda:" + str(args.gpu_id))
 model = model.to(device)
+print(model)
 
 
 ##
