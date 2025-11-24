@@ -80,6 +80,10 @@ class PointcloudAutoencoder(nn.Module):
                     emd_loss(b_pc, recon, transpose=False) / b_pc.shape[1]
                 )
                 loss = loss_per_example.mean()
+            elif loss_rule == "hybrid":
+                loss_cd = chamfer_loss(b_pc, recon)
+                loss_emd = emd_loss(b_pc, recon, transpose=False) / b_pc.shape[1]
+                loss = (loss_cd + 0.1 * loss_emd).mean()
             else:
                 raise NotImplementedError()
 
@@ -108,6 +112,10 @@ class PointcloudAutoencoder(nn.Module):
                 loss = chamfer_loss(b_pc, recon)
             elif loss_rule == "emd":
                 loss = emd_loss(b_pc, recon, transpose=False) / b_pc.shape[1]
+            elif loss_rule == "hybrid":
+                loss_cd = chamfer_loss(b_pc, recon)
+                loss_emd = emd_loss(b_pc, recon, transpose=False) / b_pc.shape[1]
+                loss = loss_cd + 0.1 * loss_emd
             else:
                 raise NotImplementedError()
             losses_per_example.extend(loss.cpu())

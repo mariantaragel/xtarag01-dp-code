@@ -2,7 +2,7 @@
 #PBS -N train_latent_listener_job
 #PBS -q gpu
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
-#PBS -l walltime=4:00:00
+#PBS -l walltime=8:00:00
 
 DATASET_NAME=removed-front-teeth-v11
 

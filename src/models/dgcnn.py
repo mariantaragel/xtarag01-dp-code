@@ -103,7 +103,7 @@ class DGCNN(nn.Module):
             nn.LeakyReLU(negative_slope=0.2),
         )
 
-    def forward(self, x, transpose_input_output=True, spatial_knn=None, pool="max"):
+    def forward(self, x, transpose_input_output=False, spatial_knn=None, pool="max"):
         """Feed forward.
         :param x: Tensor, [B x Num-objects/points x Feat-Dim], if transpose_input_output is True else the dims are
             [B x Feat-Dim x Num-objects/points]

@@ -7,6 +7,8 @@ from language.vocabulary import Vocabulary
 from .basic_ops_as_modules import ReLU
 from .beta_vae import PointcloudBetaVAE
 from .changeit3d_net import LatentDirectionFinder
+from .dgcnn import DGCNN
+from .folding_net import FoldingNet
 from .listening_oriented import TransformerModel, TransformerModelFeature
 from .mlp import MLP
 from .pc_ae_cls import PointcloudAutoencoderCls
@@ -19,6 +21,15 @@ def describe_pc_ae(args):
     if args.encoder_net == "pointnet":
         ae_encoder = PointNet(init_feat_dim=3, conv_dims=args.encoder_conv_layers)
         encoder_latent_dim = args.encoder_conv_layers[-1]
+    elif args.encoder_net == "dgcnn":
+        ae_encoder = DGCNN(
+            initial_dim=3,
+            out_dim=512,
+            k_neighbors=20,
+            intermediate_feat_dim=[64, 64, 128, 256],
+            subtract_from_self=True,
+        )
+        encoder_latent_dim = 512
     else:
         raise NotImplementedError()
 
@@ -28,6 +39,8 @@ def describe_pc_ae(args):
             out_channels=args.decoder_fc_neurons + [args.n_pc_points * 3],
             b_norm=False,
         )
+    elif args.decoder_net == "foldingnet":
+        ae_decoder = FoldingNet(encoder_latent_dim, num_points=args.n_pc_points)
     else:
         raise NotImplementedError()
 
@@ -88,7 +101,15 @@ def describe_pc_beta_vae(args):
 def load_pretrained_pc_ae(model_file):
     config_file = osp.join(osp.dirname(model_file), "config.json.txt")
     pc_ae_args = read_saved_args(config_file)
-    pc_ae = describe_pc_ae(pc_ae_args)
+
+    if pc_ae_args.architecture == "pc_ae":
+        pc_ae = describe_pc_ae(pc_ae_args)
+    elif pc_ae_args.architecture == "pc_ae_cls":
+        pc_ae = describe_pc_ae_cls(pc_ae_args)
+    elif pc_ae_args.architecture == "pc_beta_vae":
+        pc_ae = describe_pc_beta_vae(pc_ae_args)
+    else:
+        raise NotImplementedError()
 
     # if osp.join(pc_ae_args.log_dir, "best_model.pt") != osp.abspath(model_file):
     #     warnings.warn(

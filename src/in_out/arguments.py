@@ -124,7 +124,10 @@ def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
     parser.add_argument("--init_lr", type=float, default=5e-4)
     parser.add_argument("--max_train_epochs", type=positive_int, default=350)
     parser.add_argument(
-        "--loss_function", type=str, default="chamfer", choices=["chamfer", "emd"]
+        "--loss_function",
+        type=str,
+        default="chamfer",
+        choices=["chamfer", "emd", "hybrid"],
     )
     parser.add_argument(
         "--train_patience",
@@ -313,6 +316,13 @@ def parse_train_changeit3d_arguments(notebook_options=None, save_args=True):
         type=str,
         default="pcae",
         choices=["pcae", "sgf", "imnet"],
+    )
+
+    parser.add_argument(
+        "--architecture",
+        type=str,
+        default="pc_ae",
+        choices=["pc_ae", "pc_ae_cls", "pc_beta_vae"],
     )
 
     # Dataset oriented

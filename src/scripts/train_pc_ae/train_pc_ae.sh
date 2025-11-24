@@ -2,7 +2,7 @@
 #PBS -N train_pc_ae_job
 #PBS -q gpu
 #PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
-#PBS -l walltime=4:00:00
+#PBS -l walltime=8:00:00
 
 DATASET_NAME=removed-front-teeth-v11
 
@@ -21,20 +21,20 @@ SCALE=True
 GPU_ID=0
 NUM_WORKERS=2
 
-ENCODER_NET=pointnet
+ENCODER_NET=pointnet # dgcnn
 DECODER_NET=mlp
-BATCH_SIZE=32
-LR=0.00005
+BATCH_SIZE=32 # 64
+LR=0.0005 # 0.00075
 
-LATENT_BACKBONE=pc_ae # pc_beta_vae, pc_ae_cls
-LOSS=chamfer
-N_PC_POINTS=2048 # 4096
-EPOCHS=100 # 350, 500
-TRAIN_PATIENCE=1000 # 14
+LATENT_BACKBONE=pc_ae_cls
+LOSS=hybrid # chamfer, emd
+N_PC_POINTS=4096
+EPOCHS=100
+TRAIN_PATIENCE=1000
 LR_PATIENCE=10
 
-ENCODER_LAYERS="32 64 64 128 256"
-DECODER_LAYERS="256 256 512"
+ENCODER_LAYERS="32 64 64 128 256" # 64 128 128 256 512
+DECODER_LAYERS="256 256 512" # 512 512 1024
 
 CLASSIFIER_LAYERS="128"
 ALFA=2.0
