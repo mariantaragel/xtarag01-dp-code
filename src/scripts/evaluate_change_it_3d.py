@@ -222,4 +222,30 @@ with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
             results_on_retrieval_version,
         )
 
+text_11 = ["remove", "tooth", "11"]
+text_15 = ["remove", "tooth", "15"]
+tokens_11 = vocab.encode(text_11)
+tokens_15 = vocab.encode(text_15)
+
+max_len = max(len(t) for t in [tokens_11, tokens_15])
+padded_tokens = np.zeros((2, max_len), dtype=np.int64)
+for i, seq in enumerate([tokens_11, tokens_15]):
+    padded_tokens[i, : len(seq)] = seq
+
+tensor_tokens = torch.from_numpy(padded_tokens).to(device)
+
+c3d_net.eval()
+with torch.no_grad():
+    embeddings = c3d_net.language_encoder(tensor_tokens)
+emb_11 = embeddings[0].unsqueeze(0)
+emb_15 = embeddings[1].unsqueeze(0)
+
+similarity = torch.nn.functional.cosine_similarity(emb_11, emb_15).item()
+
+print(f"\n{'=' * 40}")
+print(f"Text A: '{text_11}'")
+print(f"Text B: '{text_15}'")
+print(f"Cosine Similarity: {similarity:.4f}")
+print(f"{'=' * 40}\n")
+
 wandb.finish()

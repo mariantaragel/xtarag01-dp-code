@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import random
 from pathlib import Path
 
 import numpy as np
@@ -29,52 +30,70 @@ def flip_vertices_by_yz(vertices, orig_index):
     return vertices
 
 
-def process_mesh(mesh, orig_index, segmentation, file_name):
-    vertices_tooth_11 = np.array(segmentation["segmentation"]["11"]["vertices"])
-    vertices_tooth_11 = flip_vertices_by_yz(vertices_tooth_11, orig_index)
-    mean_11_x, mean_11_y, mean_11_z = np.mean(vertices_tooth_11, axis=0)
-
-    vertices_tooth_21 = np.array(segmentation["segmentation"]["21"]["vertices"])
-    vertices_tooth_21 = flip_vertices_by_yz(vertices_tooth_21, orig_index)
-    mean_21_x, mean_21_y, mean_21_z = np.mean(vertices_tooth_21, axis=0)
-
-    mean_x = (mean_11_x + mean_21_x) / 2
-    mean_y = (mean_11_y + mean_21_y) / 2
-    mean_z = (mean_11_z + mean_21_z) / 2
-
-    print(orig_index, mean_x, mean_y, mean_z)
-
+def process_mesh(mesh, orig_index, file_name):
     vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
     vertices = flip_vertices_by_yz(vertices, orig_index)
+    mean_x, mean_y, mean_z = np.mean(vertices, axis=0)
 
-    vertices[:, 0] = vertices[:, 0] - mean_x
-    vertices[:, 1] = vertices[:, 1] - mean_y
-    vertices[:, 2] = vertices[:, 2] - mean_z
+    vertices[:, 0] -= mean_x
+    vertices[:, 1] -= mean_y
+    vertices[:, 2] -= mean_z
 
     np.savez_compressed(file_name, pointcloud=vertices)
 
 
-def get_class(act):
-    upper_right_teeth = [str(i) for i in range(11, 19)]
-    upper_left_teeth = [str(i) for i in range(21, 29)]
-    upper_teeth = set(upper_left_teeth + upper_right_teeth)
-    miss_teeth = upper_teeth - act
-    cls = "miss_" + "_".join(sorted(miss_teeth))
-    return cls
+def get_utterance(removed_tooth):
+    if removed_tooth == "11":
+        tooth_texts = ["8 universal", "right 1", "11 FDI", "right central incisor"]
+    elif removed_tooth == "12":
+        tooth_texts = ["7 universal", "right 2", "12 FDI", "right lateral incisor"]
+    elif removed_tooth == "13":
+        tooth_texts = ["6 universal", "right 3", "13 FDI", "right cuspid"]
+    elif removed_tooth == "14":
+        tooth_texts = ["5 universal", "right 4", "14 FDI", "right first bicuspid"]
+    elif removed_tooth == "15":
+        tooth_texts = ["4 universal", "right 5", "15 FDI", "right second bicuspid"]
+    elif removed_tooth == "16":
+        tooth_texts = ["3 universal", "right 6", "16 FDI", "right first molar"]
+    elif removed_tooth == "17":
+        tooth_texts = ["2 universal", "right 7", "17 FDI", "right second molar"]
+    elif removed_tooth == "18":
+        tooth_texts = ["1 universal", "right 8", "18 FDI", "right third molar"]
+    elif removed_tooth == "21":
+        tooth_texts = ["9 universal", "left 1", "21 FDI", "left central incisor"]
+    elif removed_tooth == "22":
+        tooth_texts = ["10 universal", "left 2", "22 FDI", "left lateral incisor"]
+    elif removed_tooth == "23":
+        tooth_texts = ["11 universal", "left 3", "23 FDI", "left cuspid"]
+    elif removed_tooth == "24":
+        tooth_texts = ["12 universal", "left 4", "24 FDI", "left first bicuspid"]
+    elif removed_tooth == "25":
+        tooth_texts = ["13 universal", "left 5", "25 FDI", "left second bicuspid"]
+    elif removed_tooth == "26":
+        tooth_texts = ["14 universal", "left 6", "26 FDI", "left first molar"]
+    elif removed_tooth == "27":
+        tooth_texts = ["15 universal", "left 7", "27 FDI", "left second molar"]
+    elif removed_tooth == "28":
+        tooth_texts = ["16 universal", "left 8", "28 FDI", "left third molar"]
 
+    verbs = ["remove", "extract", "delete", "pull"]
 
-def filter_meshes(mesh_files):
-    filtered_mesh_files = []
+    verb = random.choice(verbs)
+    tooth_text = random.choice(tooth_texts)
+    if verb == "remove" or verb == "delete":
+        template = random.choice([
+            f"{verb} {tooth_text}"
+            f"Please {verb} {tooth_text}"
+            f"{tooth_text} needs to be {verb}d"
+        ])
+    else:
+        template = random.choice([
+            f"{verb} {tooth_text}"
+            f"Please {verb} {tooth_text}"
+            f"{tooth_text} needs to be {verb}ed"
+        ])
 
-    for mesh_file in mesh_files:
-        json_file = mesh_file[:-3] + "json"
-        with open(json_file, "r") as f:
-            mesh_data = json.load(f)
-            teeth = mesh_data["segmentation"].keys()
-            if set(["11", "21"]).issubset(teeth):
-                filtered_mesh_files.append(mesh_file)
-
-    return filtered_mesh_files
+    return template
 
 
 def remove_tooth(mesh_file, args):
@@ -96,7 +115,7 @@ def remove_tooth(mesh_file, args):
     mesh = trimesh.load(mesh_file)
     source_file_name = f"/{orig_index}_{orig_name}_source.npz"
     source_file_name_path = file_name_prefix + source_file_name
-    process_mesh(mesh, orig_index, segmentation, source_file_name_path)
+    process_mesh(mesh, orig_index, source_file_name_path)
 
     source_file_names = []
     target_file_names = []
@@ -107,9 +126,8 @@ def remove_tooth(mesh_file, args):
     target_object_classes = []
 
     train_indices = split["train"]
-    other_indices = split["test"]
-    test_indices = other_indices[: len(other_indices) // 2]
-    val_indices = other_indices[len(other_indices) // 2 :]
+    test_indices = split["test"]
+    val_indices = split["val"]
 
     patient_teeth = set(segmentation["segmentation"].keys())
     teeth = list(set(args.teeth_to_remove).intersection(patient_teeth))
@@ -117,7 +135,7 @@ def remove_tooth(mesh_file, args):
     tree = cKDTree(mesh.vertices)
     for tooth in teeth:
         vertices_to_remove = np.array(segmentation["segmentation"][tooth]["vertices"])
-        distances, indices = tree.query(vertices_to_remove, k=1)
+        _, indices = tree.query(vertices_to_remove, k=1)
 
         mask = np.full(mesh.vertices.shape[0], True)
         mask[indices] = False
@@ -127,9 +145,9 @@ def remove_tooth(mesh_file, args):
 
         target_file_name = f"/{orig_index}_{orig_name}_{tooth}_target.npz"
         target_file_name_path = file_name_prefix + target_file_name
-        process_mesh(new_mesh, orig_index, segmentation, target_file_name_path)
+        process_mesh(new_mesh, orig_index, target_file_name_path)
 
-        utterance = f"remove tooth {tooth}"
+        utterance = get_utterance(tooth)
         object_class = "upper jaw"
         source_object_class = "baseline"
         target_object_class = f"miss_{tooth}"
@@ -147,9 +165,6 @@ def remove_tooth(mesh_file, args):
             splits.append("test")
         elif orig_index in val_indices:
             splits.append("val")
-        else:
-            print("NOT in splits:", orig_index)  # 0736, 0818
-            splits.append("train")
 
     return (
         source_file_names,
@@ -179,9 +194,7 @@ if __name__ == "__main__":
 
     meshes = [f.path for f in os.scandir(args.data_dir) if f.is_dir()]
     meshes_upper_final = [m + "/final/U_Final.stl" for m in meshes]
-    meshes_upper_final = filter_meshes(meshes_upper_final)
     meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
-    meshes_upper_ori = filter_meshes(meshes_upper_ori)
     meshes_to_process = sorted(meshes_upper_final + meshes_upper_ori)
 
     source_uids = []

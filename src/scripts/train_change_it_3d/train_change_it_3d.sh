@@ -24,7 +24,7 @@ RANDOM_SEED=42
 GPU_ID=0
 LATENT_BACKBONE=pcae
 SELF_CONTRAST=True
-NET_ABLATION=decoupling_mag_direction
+NET_ABLATION=coupled # decoupling_mag_direction
 NUM_WORKERS=2
 
 BATCH_SIZE=1024
