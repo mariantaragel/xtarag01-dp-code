@@ -1,5 +1,7 @@
 import os.path as osp
 
+from torch import nn
+
 from in_out.basics import load_state_dicts, read_saved_args
 from in_out.changeit3d_net import load_pickled_shape_latent_codes
 from language.vocabulary import Vocabulary
@@ -14,6 +16,7 @@ from .mlp import MLP
 from .pc_ae_cls import PointcloudAutoencoderCls
 from .point_net import PointNet
 from .pointcloud_autoencoder import PointcloudAutoencoder
+from .language_encoder import EmbeddingLangEncoder
 
 
 def describe_pc_ae(args):
@@ -133,12 +136,12 @@ def ablations_changeit3d_net(
     in_dim = d_lang_model + shape_latent_dim
 
     editor = MLP(
-        in_dim,
+        d_lang_model,
         [256, shape_latent_dim, shape_latent_dim, shape_latent_dim],
         b_norm=True,
         remove_final_bias=True,
     )
-    stimulus_encoder = MLP(shape_latent_dim, [shape_latent_dim, shape_latent_dim])
+    stimulus_encoder = None # MLP(shape_latent_dim, [shape_latent_dim, shape_latent_dim])
     closure = ReLU()
 
     if ablation_version == "decoupling_mag_direction":
@@ -151,15 +154,8 @@ def ablations_changeit3d_net(
         raise ValueError("ablation version of ChangeIt3D not understood.")
 
     print("Doing ST ablation", ablation_version, "with self contrast", self_contrast)
-
-    nhead = 2
-    d_hid = 128
-    nlayers = 2
-    language_dropout = 0.2
-    language_model = TransformerModel(
-        len(vocab), d_lang_model, nhead, d_hid, nlayers, language_dropout
-    )
-    language_encoder = TransformerModelFeature(language_model)
+    
+    language_encoder = EmbeddingLangEncoder(len(vocab), d_lang_model)
 
     model = LatentDirectionFinder(
         language_encoder,

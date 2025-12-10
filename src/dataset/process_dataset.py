@@ -27,7 +27,8 @@ if __name__ == "__main__":
     token_list = df.tokens
     vocab = build_vocab(token_list, 0)
 
-    df["tokens_encoded"] = df["tokens"].apply(vocab.encode)
+    max_len = df["tokens"].str.len().max()
+    df["tokens_encoded"] = df["tokens"].apply(lambda tokens: vocab.encode(tokens, max_len=max_len, add_begin_end=True))
 
     Path(f"{args.save_dir}/{dataset_name}/vocabulary/").mkdir(
         parents=True, exist_ok=True

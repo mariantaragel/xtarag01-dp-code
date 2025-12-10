@@ -7,6 +7,7 @@ from torch import nn
 
 from losses.lp_norms import safe_l2
 from utils.stats import AverageMeter
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def safe_log(x, eps=1e-12):
@@ -171,6 +172,9 @@ class LatentDirectionFinder(nn.Module):
             target_labels = batch["label"].to(device)
             batch_size = len(tokens)
             assert (target_labels == 1).all()
+
+            z_lang = self.language_encoder(tokens).cpu().detach().numpy()
+            print(cosine_similarity(z_lang).min(), cosine_similarity(z_lang).mean())
 
             edit_latent, _ = self(tokens, distractor)
             transformed_distractor = distractor + edit_latent

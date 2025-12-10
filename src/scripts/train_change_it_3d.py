@@ -120,7 +120,7 @@ for param in pretrained_listener.parameters():
 # Train it.
 ##
 
-# torch.backends.cudnn.enabled = False  # uncomment if pretrained listener is based on an LSTM
+torch.backends.cudnn.enabled = False  # uncomment if pretrained listener is based on an LSTM
 
 if args.train:
     epochs_val_not_improved = 0
@@ -233,6 +233,9 @@ if args.train:
                 adaptive_id_penalty=args.adaptive_id_penalty,
                 device=device,
             )
+
+            edit_l2 = np.linalg.norm(result["inputs"] - result["outputs"], axis=1)
+            print("Edit L2 stats:", edit_l2.mean(), edit_l2.std(), edit_l2.max())
 
             table = wandb.Table(["Input", "Text", "Output", "Probabilities"])
             for i in range(0, 46, 5):

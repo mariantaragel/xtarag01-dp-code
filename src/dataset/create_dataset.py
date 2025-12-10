@@ -82,14 +82,14 @@ def get_utterance(removed_tooth):
     tooth_text = random.choice(tooth_texts)
     if verb == "remove" or verb == "delete":
         template = random.choice([
-            f"{verb} {tooth_text}"
-            f"Please {verb} {tooth_text}"
+            f"{verb} {tooth_text}",
+            f"Please {verb} {tooth_text}",
             f"{tooth_text} needs to be {verb}d"
         ])
     else:
         template = random.choice([
-            f"{verb} {tooth_text}"
-            f"Please {verb} {tooth_text}"
+            f"{verb} {tooth_text}",
+            f"Please {verb} {tooth_text}",
             f"{tooth_text} needs to be {verb}ed"
         ])
 
