@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -N evaluate_change_it_3d_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
-#PBS -l walltime=4:00:00
+#PBS -l select=1:ncpus=1:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
+#PBS -l walltime=1:00:00
 
-DATASET_NAME=removed-upper-teeth-v1
+DATASET_NAME=Contrastive_Dent_Dataset
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -24,7 +24,7 @@ GPU_ID=0
 N_PC_POINTS=4096
 SEED=42
 BATCH=64
-NUM_WORKERS=2
+NUM_WORKERS=1
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"

@@ -69,7 +69,8 @@ def run_all_metrics(
     sentences: (list of strings) strings used to transform gt_pcs into the transformed_shapes, they are assumed to
                                  be space tokenizable already (i.e., by a simple .split() operation)
     """
-
+    print(transformed_shapes.max(), gt_pcs.max())
+    print(transformed_shapes.mean(axis=(0,1)), gt_pcs.mean(axis=(0,1)))
     results_on_metrics = dict()
 
     device = torch.device("cuda:" + str(args.gpu_id))

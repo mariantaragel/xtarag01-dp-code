@@ -70,7 +70,7 @@ def describe_pc_ae_cls(args):
 
     ae_classifier = MLP(
         in_feat_dims=encoder_latent_dim,
-        out_channels=args.classifier_fc_neurons + [3],
+        out_channels=args.classifier_fc_neurons + [args.n_cls],
         b_norm=False,
     )
 
@@ -136,12 +136,12 @@ def ablations_changeit3d_net(
     in_dim = d_lang_model + shape_latent_dim
 
     editor = MLP(
-        d_lang_model,
+        in_dim,
         [256, shape_latent_dim, shape_latent_dim, shape_latent_dim],
         b_norm=True,
         remove_final_bias=True,
     )
-    stimulus_encoder = None # MLP(shape_latent_dim, [shape_latent_dim, shape_latent_dim])
+    stimulus_encoder = MLP(shape_latent_dim, [shape_latent_dim, shape_latent_dim])
     closure = ReLU()
 
     if ablation_version == "decoupling_mag_direction":

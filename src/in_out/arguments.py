@@ -100,6 +100,9 @@ def parse_train_test_pc_ae_arguments(notebook_options=None, save_args=True):
         "--n_pc_points", type=int, default=2**13, help="points per shape"
     )
     parser.add_argument(
+        "--n_cls", type=int, default=17, help="number of classes"
+    )
+    parser.add_argument(
         "--encoder_net", type=str, default="pointnet", help="encoding architecture"
     )
     parser.add_argument("--decoder_net", type=str, default="mlp")

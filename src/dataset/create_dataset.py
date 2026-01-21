@@ -33,148 +33,161 @@ def flip_vertices_by_yz(vertices, orig_index):
 def process_mesh(mesh, orig_index, file_name):
     vertices = downsample_vertices(mesh.vertices, N_PC_POINTS)
     vertices = flip_vertices_by_yz(vertices, orig_index)
-    mean_x, mean_y, mean_z = np.mean(vertices, axis=0)
+    vertices -= np.mean(vertices, axis=0)
 
-    vertices[:, 0] -= mean_x
-    vertices[:, 1] -= mean_y
-    vertices[:, 2] -= mean_z
+    max_dist = np.max(np.sqrt(np.sum(vertices**2, axis=1)))
+    if max_dist > 0:
+        vertices /= max_dist
 
     np.savez_compressed(file_name, pointcloud=vertices)
 
 
-def get_utterance(removed_tooth):
-    if removed_tooth == "11":
-        tooth_texts = ["8 universal", "right 1", "11 FDI", "right central incisor"]
-    elif removed_tooth == "12":
-        tooth_texts = ["7 universal", "right 2", "12 FDI", "right lateral incisor"]
-    elif removed_tooth == "13":
-        tooth_texts = ["6 universal", "right 3", "13 FDI", "right cuspid"]
-    elif removed_tooth == "14":
-        tooth_texts = ["5 universal", "right 4", "14 FDI", "right first bicuspid"]
-    elif removed_tooth == "15":
-        tooth_texts = ["4 universal", "right 5", "15 FDI", "right second bicuspid"]
-    elif removed_tooth == "16":
-        tooth_texts = ["3 universal", "right 6", "16 FDI", "right first molar"]
-    elif removed_tooth == "17":
-        tooth_texts = ["2 universal", "right 7", "17 FDI", "right second molar"]
-    elif removed_tooth == "18":
-        tooth_texts = ["1 universal", "right 8", "18 FDI", "right third molar"]
-    elif removed_tooth == "21":
-        tooth_texts = ["9 universal", "left 1", "21 FDI", "left central incisor"]
-    elif removed_tooth == "22":
-        tooth_texts = ["10 universal", "left 2", "22 FDI", "left lateral incisor"]
-    elif removed_tooth == "23":
-        tooth_texts = ["11 universal", "left 3", "23 FDI", "left cuspid"]
-    elif removed_tooth == "24":
-        tooth_texts = ["12 universal", "left 4", "24 FDI", "left first bicuspid"]
-    elif removed_tooth == "25":
-        tooth_texts = ["13 universal", "left 5", "25 FDI", "left second bicuspid"]
-    elif removed_tooth == "26":
-        tooth_texts = ["14 universal", "left 6", "26 FDI", "left first molar"]
-    elif removed_tooth == "27":
-        tooth_texts = ["15 universal", "left 7", "27 FDI", "left second molar"]
-    elif removed_tooth == "28":
-        tooth_texts = ["16 universal", "left 8", "28 FDI", "left third molar"]
+def get_utterance(op, removed_tooth, args):
+    tooth_map = {
+        # Upper Right
+        "11": ["8 universal", "right 1", "11 FDI", "upper right central incisor"],
+        "12": ["7 universal", "right 2", "12 FDI", "upper right lateral incisor"],
+        "13": ["6 universal", "right 3", "13 FDI", "upper right canine"],
+        "14": ["5 universal", "right 4", "14 FDI", "upper right first premolar"],
+        "15": ["4 universal", "right 5", "15 FDI", "upper right second premolar"],
+        "16": ["3 universal", "right 6", "16 FDI", "upper right first molar"],
+        "17": ["2 universal", "right 7", "17 FDI", "upper right second molar"],
+        "18": ["1 universal", "right 8", "18 FDI", "upper right third molar"],
+        # Upper Left
+        "21": ["9 universal", "left 1", "21 FDI", "upper left central incisor"],
+        "22": ["10 universal", "left 2", "22 FDI", "upper left lateral incisor"],
+        "23": ["11 universal", "left 3", "23 FDI", "upper left canine"],
+        "24": ["12 universal", "left 4", "24 FDI", "upper left first premolar"],
+        "25": ["13 universal", "left 5", "25 FDI", "upper left second premolar"],
+        "26": ["14 universal", "left 6", "26 FDI", "upper left first molar"],
+        "27": ["15 universal", "left 7", "27 FDI", "upper left second molar"],
+        "28": ["16 universal", "left 8", "28 FDI", "upper left third molar"],
+        # Lower Left
+        "31": ["24 universal", "left 1", "31 FDI", "lower left central incisor"],
+        "32": ["23 universal", "left 2", "32 FDI", "lower left lateral incisor"],
+        "33": ["22 universal", "left 3", "33 FDI", "lower left canine"],
+        "34": ["21 universal", "left 4", "34 FDI", "lower left first premolar"],
+        "35": ["20 universal", "left 5", "35 FDI", "lower left second premolar"],
+        "36": ["19 universal", "left 6", "36 FDI", "lower left first molar"],
+        "37": ["18 universal", "left 7", "37 FDI", "lower left second molar"],
+        "38": ["17 universal", "left 8", "38 FDI", "lower left third molar"],
+        # Lower Right
+        "41": ["25 universal", "right 1", "41 FDI", "lower right central incisor"],
+        "42": ["26 universal", "right 2", "42 FDI", "lower right lateral incisor"],
+        "43": ["27 universal", "right 3", "43 FDI", "lower right canine"],
+        "44": ["28 universal", "right 4", "44 FDI", "lower right first premolar"],
+        "45": ["29 universal", "right 5", "45 FDI", "lower right second premolar"],
+        "46": ["30 universal", "right 6", "46 FDI", "lower right first molar"],
+        "47": ["31 universal", "right 7", "47 FDI", "lower right second molar"],
+        "48": ["32 universal", "right 8", "48 FDI", "lower right third molar"],
+    }
 
-    verbs = ["remove", "extract", "delete", "pull"]
+    if removed_tooth not in tooth_map and op != "align":
+        return "align the dental arch"
 
-    verb = random.choice(verbs)
-    tooth_text = random.choice(tooth_texts)
-    if verb == "remove" or verb == "delete":
-        template = random.choice([
-            f"{verb} {tooth_text}",
-            f"Please {verb} {tooth_text}",
-            f"{tooth_text} needs to be {verb}d"
-        ])
-    else:
-        template = random.choice([
-            f"{verb} {tooth_text}",
-            f"Please {verb} {tooth_text}",
-            f"{tooth_text} needs to be {verb}ed"
-        ])
+    tooth_text = tooth_map[removed_tooth][args.notation] if op != "align" else ""
 
-    return template
+    if op == "extract":
+        templates = [
+            f"Please remove {tooth_text}",
+            f"Extraction of {tooth_text} is required",
+            f"Delete the {tooth_text} from the model",
+            f"I need you to pull the {tooth_text}",
+            f"Can you get rid of {tooth_text}?",
+            f"The patient needs {tooth_text} removed"
+        ]
+    elif op == "replace":
+        templates = [
+            f"Add a new tooth at {tooth_text}",
+            f"Insert an implant for {tooth_text}",
+            f"Replace the missing {tooth_text}",
+            f"Place a restoration in the {tooth_text} position",
+            f"We need to put {tooth_text} back",
+            f"Fill the gap where {tooth_text} was"
+        ]
+    elif op == "align":
+        templates = [
+            "Align the teeth",
+            "Please perform a standard alignment on the arch",
+            "Correct the positioning of the teeth",
+            "Straighten the dental arch",
+            "The arch needs to be perfectly aligned"
+        ]
+
+    return random.choice(templates)
 
 
-def remove_tooth(mesh_file, args):
-    segmentation_file = mesh_file[:-3] + "json"
-
-    mesh_file_splitted = mesh_file[:-4].split("/")
-    orig_name = mesh_file_splitted[-1]
-    orig_index = mesh_file_splitted[-3]
-
-    with open(segmentation_file, "r") as f:
-        segmentation = json.load(f)
-
+def process_patient_sample(mesh_path_ori, mesh_path_final, args):
     with open(args.split_file, "r") as f:
-        split = json.load(f)
+        split_json = json.load(f)
+
+    index = mesh_path_ori.split("/")[-3]
+    if index in split_json["train"]:
+        split = "train"
+    elif index in split_json["test"]:
+        split = "test"
+    elif index in split_json["val"]:
+        split = "val"
+
+    ori_name = mesh_path_ori.split("/")[-1][:-4]
+    final_name = mesh_path_final.split("/")[-1][:-4]
 
     file_name_prefix = f"{args.save_dir}/{args.dataset_name}/point-clouds"
     Path(file_name_prefix).mkdir(parents=True, exist_ok=True)
 
-    mesh = trimesh.load(mesh_file)
-    source_file_name = f"/{orig_index}_{orig_name}_source.npz"
-    source_file_name_path = file_name_prefix + source_file_name
-    process_mesh(mesh, orig_index, source_file_name_path)
+    mesh_ori = trimesh.load(mesh_path_ori)
+    mesh_final = trimesh.load(mesh_path_final)
 
-    source_file_names = []
-    target_file_names = []
-    utterances = []
-    object_classes = []
-    splits = []
-    source_object_classes = []
-    target_object_classes = []
+    results = []
 
-    train_indices = split["train"]
-    test_indices = split["test"]
-    val_indices = split["val"]
+    # 1. Operation: Teeth Alignment
+    ori_file = f"/{index}_{ori_name}_align_source.npz"
+    final_file = f"/{index}_{final_name}_align_target.npz"
+    process_mesh(mesh_ori, index, file_name_prefix + ori_file)
+    process_mesh(mesh_final, index, file_name_prefix + final_file)
 
-    patient_teeth = set(segmentation["segmentation"].keys())
-    teeth = list(set(args.teeth_to_remove).intersection(patient_teeth))
+    results.append({
+        "source_uid": ori_file, "target_uid": final_file, 
+        "utterance": get_utterance("align", None, args),
+        "split": split, "object_class": "dental_arch",
+        "source_object_class": "miss_aligned", "target_object_class": "aligned"
+    })
 
-    tree = cKDTree(mesh.vertices)
-    for tooth in teeth:
-        vertices_to_remove = np.array(segmentation["segmentation"][tooth]["vertices"])
-        _, indices = tree.query(vertices_to_remove, k=1)
+    # 2. Operation: Tooth Extraction & Replacement
+    segmentation_file = mesh_path_ori[:-3] + "json"
+    with open(segmentation_file, "r") as f:
+        segmentation = json.load(f)
 
-        mask = np.full(mesh.vertices.shape[0], True)
-        mask[indices] = False
+    tree = cKDTree(mesh_ori.vertices)
+    for tooth in args.teeth_to_remove:
+        if tooth in segmentation["segmentation"]:
+            vertices_to_remove = np.array(segmentation["segmentation"][tooth]["vertices"])
+            _, indices = tree.query(vertices_to_remove, k=1)
 
-        new_mesh = mesh.copy()
-        new_mesh.update_vertices(mask)
+            mask = np.full(mesh_ori.vertices.shape[0], True)
+            mask[indices] = False
 
-        target_file_name = f"/{orig_index}_{orig_name}_{tooth}_target.npz"
-        target_file_name_path = file_name_prefix + target_file_name
-        process_mesh(new_mesh, orig_index, target_file_name_path)
+            new_mesh = mesh_ori.copy()
+            new_mesh.update_vertices(mask)
 
-        utterance = get_utterance(tooth)
-        object_class = "upper jaw"
-        source_object_class = "baseline"
-        target_object_class = f"miss_{tooth}"
+            target_file = f"/{index}_{ori_name}_{tooth}_extracted.npz"
+            process_mesh(new_mesh, index, file_name_prefix + target_file)
 
-        source_file_names.append(source_file_name)
-        target_file_names.append(target_file_name)
-        utterances.append(utterance)
-        object_classes.append(object_class)
-        source_object_classes.append(source_object_class)
-        target_object_classes.append(target_object_class)
+            results.append({
+                "source_uid": ori_file, "target_uid": target_file,
+                "utterance": get_utterance("extract", tooth, args),
+                "split": split, "object_class": "dental_arch",
+                "source_object_class": "miss_aligned", "target_object_class": f"miss_{tooth}"
+            })
 
-        if orig_index in train_indices:
-            splits.append("train")
-        elif orig_index in test_indices:
-            splits.append("test")
-        elif orig_index in val_indices:
-            splits.append("val")
+            results.append({
+                "source_uid": target_file, "target_uid": ori_file,
+                "utterance": get_utterance("replace", tooth, args),
+                "split": split, "object_class": "dental_arch",
+                "source_object_class": f"miss_{tooth}", "target_object_class": "miss_aligned"
+            })
 
-    return (
-        source_file_names,
-        target_file_names,
-        utterances,
-        object_classes,
-        source_object_classes,
-        target_object_classes,
-        splits,
-    )
+    return results
 
 
 if __name__ == "__main__":
@@ -183,62 +196,22 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_name", help="Name of the dataset")
     parser.add_argument("--save_dir", help="Where to store created dataset")
     parser.add_argument("--split_file", help="Path to split file")
-    parser.add_argument(
-        "--teeth_to_remove",
-        type=str,
-        nargs="*",
-        default=["11", "12", "21", "22"],
-        help="Which teeth will be removed from original shape",
-    )
+    parser.add_argument("--notation", type=int, default=2)
+    parser.add_argument("--teeth_to_remove", type=str, nargs="*", default=["11", "21"],
+                        help="Which teeth will be removed from original shape")
     args = parser.parse_args()
 
     meshes = [f.path for f in os.scandir(args.data_dir) if f.is_dir()]
-    meshes_upper_final = [m + "/final/U_Final.stl" for m in meshes]
-    meshes_upper_ori = [m + "/ori/U_Ori.stl" for m in meshes]
-    meshes_to_process = sorted(meshes_upper_final + meshes_upper_ori)
+    meshes_ori = sorted([m + "/ori/U_Ori.stl" for m in meshes] + [m + "/ori/L_Ori.stl" for m in meshes])
+    meshes_final = sorted([m + "/final/U_Final.stl" for m in meshes] + [m + "/final/L_Final.stl" for m in meshes])
+    meshes_to_process = zip(meshes_ori, meshes_final)
 
-    source_uids = []
-    target_uids = []
-    utterances = []
-    object_classes = []
-    splits = []
-    source_object_classes = []
-    target_object_classes = []
+    rows = []
+    for mesh_path_ori, mesh_path_final in tqdm(meshes_to_process):
+        results = process_patient_sample(mesh_path_ori, mesh_path_final, args)
+        rows += results
 
-    for mesh_file in tqdm(meshes_to_process):
-        (
-            source_uid,
-            target_uid,
-            utterance,
-            object_class,
-            source_object_class,
-            target_object_class,
-            split,
-        ) = remove_tooth(mesh_file, args)
-
-        source_uids += source_uid
-        target_uids += target_uid
-        utterances += utterance
-        object_classes += object_class
-        source_object_classes += source_object_class
-        target_object_classes += target_object_class
-        splits += split
-
-    df = pd.DataFrame(
-        {
-            "source_uid": source_uids,
-            "target_uid": target_uids,
-            "utterance": utterances,
-            "object_class": object_classes,
-            "source_object_class": source_object_classes,
-            "target_object_class": target_object_classes,
-            "source_unary_split": splits,
-            "target_unary_split": splits,
-            "listening_split": splits,
-            "changeit_split": splits,
-        }
-    )
-
+    df = pd.DataFrame(rows)
     split_folder = f"{args.save_dir}/{args.dataset_name}/splits"
     Path(split_folder).mkdir(parents=True, exist_ok=True)
     df.to_csv(f"{split_folder}/raw-split.csv", index=False)

@@ -23,6 +23,10 @@ if __name__ == "__main__":
     df["source_object_class"] = df["source_object_class"]
     df["source_dataset"] = "Orthodontic dental datatset"
     df["target_dataset"] = "Orthodontic dental datatset"
+    df["source_unary_split"] = df["split"]
+    df["target_unary_split"] = df["split"]
+    df["listening_split"] = df["split"]
+    df["changeit_split"] = df["split"]
 
     token_list = df.tokens
     vocab = build_vocab(token_list, 0)

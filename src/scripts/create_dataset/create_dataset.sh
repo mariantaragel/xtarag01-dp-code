@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=1:mem=32gb:ngpus=0:scratch_local=20gb
 #PBS -l walltime=8:00:00
 
-DATASET_NAME=removed-upper-teeth-v1
+DATASET_NAME=Contrastive_Dent_Dataset
 
 HOME_DIR=/storage/brno2/home/xtarag01
 PROJECT_DIR=$HOME_DIR/xtarag01-dp-code
@@ -21,7 +21,8 @@ cd $SCRATCHDIR
 cp -r $PROJECT_DIR .
 cd xtarag01-dp-code/src
 
-TEETH_TO_REMOVE="11 12 13 14 15 16 17 18 21 22 23 24 25 26 27 28"
+TEETH_TO_REMOVE="11 12 13 14 15 16 17 18 21 22 23 24 25 26 27 28 31 32 33 34 35 36 37 38 41 42 43 44 45 46 47 48"
+NOTATION=3
 
 singularity exec \
     -B $SCRATCHDIR:/scratch \
@@ -31,7 +32,8 @@ singularity exec \
         --dataset_name $DATASET_NAME \
         --save_dir $SAVE_DIR \
         --split_file $SPLIT_FILE \
-        --teeth_to_remove $TEETH_TO_REMOVE
+        --teeth_to_remove $TEETH_TO_REMOVE \
+        --notation $NOTATION
 
 singularity exec \
     -B $SCRATCHDIR:/scratch \

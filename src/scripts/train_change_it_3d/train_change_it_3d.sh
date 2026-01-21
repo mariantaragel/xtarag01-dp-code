@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -N train_change_it_3d_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
+#PBS -l select=1:ncpus=1:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=4:00:00
 
-DATASET_NAME=removed-front-teeth-v11
+DATASET_NAME=Contrastive_Dent_Dataset
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -25,14 +25,14 @@ GPU_ID=0
 LATENT_BACKBONE=pcae
 SELF_CONTRAST=True
 NET_ABLATION=coupled # decoupling_mag_direction
-NUM_WORKERS=2
+NUM_WORKERS=1
 
 BATCH_SIZE=64
 LR=0.0001
 IDENTITY_PENALTY=0
 WEIGHT_DECAY=0
 
-EPOCHS=50
+EPOCHS=150
 TRAIN_PATIENCE=1000
 LR_PATIENCE=10
 

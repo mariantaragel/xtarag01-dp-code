@@ -12,18 +12,16 @@ if __name__ == "__main__":
 
     df = pd.read_csv(f"{args.save_dir}/{dataset_name}/splits/raw-split.csv")
 
-    df_source = df[["source_uid", "source_object_class", "source_unary_split"]].rename(
+    df_source = df[["source_uid", "source_object_class", "split"]].rename(
         columns={
             "source_uid": "file_name",
-            "source_object_class": "object_class",
-            "source_unary_split": "split",
+            "source_object_class": "object_class"
         }
     )
-    df_target = df[["target_uid", "target_object_class", "target_unary_split"]].rename(
+    df_target = df[["target_uid", "target_object_class", "split"]].rename(
         columns={
             "target_uid": "file_name",
-            "target_object_class": "object_class",
-            "target_unary_split": "split",
+            "target_object_class": "object_class"
         }
     )
 

@@ -7,4 +7,4 @@ class EmbeddingLangEncoder(nn.Module):
 
     def __call__(self, tokens):
         x = self.encoder(tokens)
-        return x.mean(dim=1) # možno skúsiť last-pool
+        return x.mean(dim=1)

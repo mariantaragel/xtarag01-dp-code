@@ -104,7 +104,7 @@ else:
 
 
 check_loader = dataloader
-gt_classes = check_loader.dataset.df.source_object_class
+gt_classes = check_loader.dataset.df.target_object_class
 
 # Decode edits
 if args.shape_generator_type == "pcae":
@@ -126,9 +126,18 @@ elif args.shape_generator_type == "imnet":
 else:
     assert False
 
+def normalize_to_unit_sphere(pc):
+    pc[:, :, 0] = -pc[:, :, 0]
+    pc -= np.mean(pc, axis=1, keepdims=True)
+    dists = np.linalg.norm(pc, axis=2)
+    max_dists = np.max(dists, axis=1, keepdims=True)[:, :, np.newaxis]
+    return pc / (max_dists + 1e-8)
+
 transformed_shapes = transformation_results["recons"][1]
+transformed_shapes = normalize_to_unit_sphere(transformed_shapes)
+
 language_used = [vocab.decode_print(s) for s in transformation_results["tokens"]]
-gt_pc_files = check_loader.dataset.df.source_uid.apply(
+gt_pc_files = check_loader.dataset.df.target_uid.apply(
     lambda x: osp.join(args.top_pc_dir, x.lstrip("/"))
 ).tolist()
 
@@ -157,6 +166,7 @@ with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
         gt_pc_files, pc_loader, n_processes=20
     )  # or, gt_pcs = [pc_loader(m) for m in gt_pc_files]
     gt_pcs = np.array(gt_pcs)
+    gt_pcs = normalize_to_unit_sphere(gt_pcs)
 
     sentences = ndf.utterance.values
     gt_classes = gt_classes.values
@@ -173,7 +183,7 @@ with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
         ## Nearest neighbor (retrieval) baseline
         df_temp = pd.read_csv(args.shape_talk_file)
         all_train_shapes = df_temp[df_temp.changeit_split == "train"][
-            "source_uid"
+            "target_uid"
         ].unique()
         print("number of all training shapes", len(all_train_shapes))
 
@@ -197,21 +207,22 @@ with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
             parallel_apply(retrieved_files, pc_loader, n_processes=20)
         )
 
+        retrieved_pcs = normalize_to_unit_sphere(retrieved_pcs)
         results_on_retrieval_version = run_all_metrics(
             retrieved_pcs, gt_pcs, gt_classes, sentences, vocab, args, logger
         )
 
         table = wandb.Table(["Input", "Text", "Output", "Nearest"])
 
-        for i in range(0, 46, 5):
+        for i in range(0, 86, 5):
             input = np.array(gt_pcs[i])
             text = sentences[i]
             recon = np.array(transformed_shapes[i])
             retrieved = np.array(retrieved_pcs[i])
 
-            input_shape = wandb.Object3D(swap_x_axis(input))
-            output_shape = wandb.Object3D(swap_x_axis(recon))
-            retrieved_shape = wandb.Object3D(swap_x_axis(retrieved))
+            input_shape = wandb.Object3D(input)
+            output_shape = wandb.Object3D(recon)
+            retrieved_shape = wandb.Object3D(retrieved)
             table.add_data(input_shape, text, output_shape, retrieved_shape)
 
         run.log({f"{split}_examples": table})

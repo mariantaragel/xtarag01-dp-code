@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -N train_latent_listener_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
-#PBS -l walltime=8:00:00
+#PBS -l select=1:ncpus=1:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
+#PBS -l walltime=2:00:00
 
-DATASET_NAME=removed-upper-teeth-v1
+DATASET_NAME=Contrastive_Dent_Dataset
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -21,7 +21,7 @@ RANDOM_SEED=42
 GPU_ID=0
 BATCH_SIZE=2048
 LR=0.0005
-NUM_WORKERS=2
+NUM_WORKERS=1
 # LISTENING_MODEL=ablation_model_one # transformer
 LISTENING_MODEL=ablation_model_two # lstm
 

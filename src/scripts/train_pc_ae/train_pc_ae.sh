@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -N train_pc_ae_job
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
+#PBS -l select=1:ncpus=2:mem=32gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=8:00:00
 
-DATASET_NAME=removed-upper-teeth-v1
+DATASET_NAME=Contrastive_Dent_Dataset
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -38,6 +38,7 @@ DECODER_LAYERS="256 256 512"
 
 CLASSIFIER_LAYERS="128"
 ALFA=2.0
+N_CLS=34
 
 BETA=1.0
 
@@ -86,7 +87,8 @@ singularity exec --nv \
         --classifier_fc_neurons $CLASSIFIER_LAYERS \
         --alfa $ALFA \
         --load_pretrained_model $LOAD_PRETRAINED \
-        --pretrained_model_file $PRETRAINED_FILE
+        --pretrained_model_file $PRETRAINED_FILE \
+        --n_cls $N_CLS
 
 echo "Cloning resluts..."
 
