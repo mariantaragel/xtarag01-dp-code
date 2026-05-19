@@ -155,7 +155,12 @@ def ablations_changeit3d_net(
 
     print("Doing ST ablation", ablation_version, "with self contrast", self_contrast)
     
-    language_encoder = EmbeddingLangEncoder(len(vocab), d_lang_model)
+    nhead = 2
+    d_hid = 128
+    nlayers = 2
+    language_dropout = 0.2
+    language_model = TransformerModel(len(vocab), d_lang_model, nhead, d_hid, nlayers, language_dropout)
+    language_encoder = TransformerModelFeature(language_model)
 
     model = LatentDirectionFinder(
         language_encoder,

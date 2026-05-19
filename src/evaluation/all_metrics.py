@@ -113,6 +113,7 @@ def run_all_metrics(
         logger.info("Chamfer Distance (all pairs), Average, per class:")
         logger.info(score_per_class)
 
+        results_on_metrics["Chamfer_holistic_cds"] = holistic_cds
         results_on_metrics["Chamfer_all_pairs_average"] = score
         results_on_metrics["Chmafer_all_pairs_per_class"] = score_per_class
 

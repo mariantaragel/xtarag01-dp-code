@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=1:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=2:00:00
 
-DATASET_NAME=Contrastive_Dent_Dataset
+DATASET_NAME=removed-front-teeth-v12
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01

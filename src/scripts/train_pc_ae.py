@@ -8,6 +8,7 @@ import tqdm
 import wandb
 from sklearn.manifold import TSNE
 from torch import optim
+import matplotlib
 
 from in_out.arguments import parse_train_test_pc_ae_arguments
 from in_out.basics import load_state_dicts, pickle_data, save_state_dicts
@@ -68,7 +69,7 @@ if args.do_training:
     # Optimization
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.5, patience=args.lr_patience, min_lr=5e-10
+        optimizer, factor=0.5, patience=args.lr_patience, min_lr=5e-7
     )
 
     start_epoch = 1
@@ -129,9 +130,14 @@ if args.do_training:
         best_epoch = load_state_dicts(osp.join(args.log_dir, model_name), model=model)
         print("per-validation optimal epoch", best_epoch)
         print("losses at this epoch:", best_epoch)
+        matplotlib.rcParams.update({'font.size': 22})
         for split in ["train", "test"]:
-            reconstructions, inputs, losses_per_example, loss = model.reconstruct(
-                data_loaders[split], device=device, loss_rule=args.loss_function
+            reconstructions, inputs, losses_per_example, loss_chamfer = model.reconstruct(
+                data_loaders[split], device=device, loss_rule="chamfer"
+            )
+
+            _, _, _, loss_emd = model.reconstruct(
+                data_loaders[split], device=device, loss_rule="emd"
             )
 
             table = wandb.Table(["Input", "Output"])
@@ -145,7 +151,9 @@ if args.do_training:
                 table.add_data(input_shape, output_shape)
 
             run.log({f"{split}_examples": table})
-            print(split, loss)
+            run.log({f"{split}_CD": loss_chamfer, f"{split}_EMD": loss_emd})
+            print("CD:", split, loss_chamfer)
+            print("EMD:", split, loss_emd)
 
         train_loader = deterministic_data_loader(
             data_loaders["train"],

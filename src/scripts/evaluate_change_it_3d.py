@@ -141,6 +141,10 @@ gt_pc_files = check_loader.dataset.df.target_uid.apply(
     lambda x: osp.join(args.top_pc_dir, x.lstrip("/"))
 ).tolist()
 
+source_pc_files = check_loader.dataset.df.source_uid.apply(
+    lambda x: osp.join(args.top_pc_dir, x.lstrip("/"))
+).tolist()
+
 if args.save_reconstructions:
     outputs = dict()
     outputs["transformed_shapes"] = transformed_shapes
@@ -164,9 +168,18 @@ with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
     )
     gt_pcs = parallel_apply(
         gt_pc_files, pc_loader, n_processes=20
-    )  # or, gt_pcs = [pc_loader(m) for m in gt_pc_files]
+    )
     gt_pcs = np.array(gt_pcs)
     gt_pcs = normalize_to_unit_sphere(gt_pcs)
+
+    pc_loader_source = partial(
+        pc_loader_from_npz, n_samples=args.n_sample_points, random_seed=args.random_seed
+    )
+    source_pcs = parallel_apply(
+        source_pc_files, pc_loader_source, n_processes=20
+    )
+    source_pcs = np.array(source_pcs)
+    source_pcs = normalize_to_unit_sphere(source_pcs)
 
     sentences = ndf.utterance.values
     gt_classes = gt_classes.values
@@ -212,18 +225,24 @@ with wandb.init(project="Evaluate ChangeIt3D", config=args) as run:
             retrieved_pcs, gt_pcs, gt_classes, sentences, vocab, args, logger
         )
 
-        table = wandb.Table(["Input", "Text", "Output", "Nearest"])
+        table = wandb.Table(["Input", "Text", "Output", "Nearest", "GT", "CD"])
 
-        for i in range(0, 86, 5):
-            input = np.array(gt_pcs[i])
+        for i in range(0, 96, 5):
+            idx = int(i / 5) + 1
+            input = np.array(source_pcs[i])
+            gt = np.array(gt_pcs[i])
             text = sentences[i]
             recon = np.array(transformed_shapes[i])
             retrieved = np.array(retrieved_pcs[i])
+            np.savez_compressed(osp.join(args.log_dir, f"{idx}_input.npz"), pointcloud=input)
+            np.savez_compressed(osp.join(args.log_dir, f"{idx}_recon.npz"), pointcloud=recon)
+            chamfer_dist = results_on_metrics["Chamfer_holistic_cds"][i] * 1000
 
             input_shape = wandb.Object3D(input)
             output_shape = wandb.Object3D(recon)
             retrieved_shape = wandb.Object3D(retrieved)
-            table.add_data(input_shape, text, output_shape, retrieved_shape)
+            gt_shape = wandb.Object3D(gt)
+            table.add_data(input_shape, text, output_shape, retrieved_shape, gt_shape, chamfer_dist)
 
         run.log({f"{split}_examples": table})
 

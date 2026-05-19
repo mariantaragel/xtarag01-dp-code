@@ -93,7 +93,7 @@ def get_utterance(op, removed_tooth, args):
             f"Extraction of {tooth_text} is required",
             f"Delete the {tooth_text} from the model",
             f"I need you to pull the {tooth_text}",
-            f"Can you get rid of {tooth_text}?",
+            f"Can you remove {tooth_text}",
             f"The patient needs {tooth_text} removed"
         ]
     elif op == "replace":
@@ -141,17 +141,17 @@ def process_patient_sample(mesh_path_ori, mesh_path_final, args):
     results = []
 
     # 1. Operation: Teeth Alignment
-    ori_file = f"/{index}_{ori_name}_align_source.npz"
-    final_file = f"/{index}_{final_name}_align_target.npz"
+    ori_file = f"/{index}_{ori_name}_source.npz"
     process_mesh(mesh_ori, index, file_name_prefix + ori_file)
-    process_mesh(mesh_final, index, file_name_prefix + final_file)
+    # final_file = f"/{index}_{final_name}_align_target.npz"
+    # process_mesh(mesh_final, index, file_name_prefix + final_file)
 
-    results.append({
-        "source_uid": ori_file, "target_uid": final_file, 
-        "utterance": get_utterance("align", None, args),
-        "split": split, "object_class": "dental_arch",
-        "source_object_class": "miss_aligned", "target_object_class": "aligned"
-    })
+    # results.append({
+    #     "source_uid": ori_file, "target_uid": final_file, 
+    #     "utterance": get_utterance("align", None, args),
+    #     "split": split, "object_class": "dental_arch",
+    #     "source_object_class": "miss_aligned", "target_object_class": "aligned"
+    # })
 
     # 2. Operation: Tooth Extraction & Replacement
     segmentation_file = mesh_path_ori[:-3] + "json"
@@ -180,12 +180,12 @@ def process_patient_sample(mesh_path_ori, mesh_path_final, args):
                 "source_object_class": "miss_aligned", "target_object_class": f"miss_{tooth}"
             })
 
-            results.append({
-                "source_uid": target_file, "target_uid": ori_file,
-                "utterance": get_utterance("replace", tooth, args),
-                "split": split, "object_class": "dental_arch",
-                "source_object_class": f"miss_{tooth}", "target_object_class": "miss_aligned"
-            })
+            # results.append({
+            #     "source_uid": target_file, "target_uid": ori_file,
+            #     "utterance": get_utterance("replace", tooth, args),
+            #     "split": split, "object_class": "dental_arch",
+            #     "source_object_class": f"miss_{tooth}", "target_object_class": "miss_aligned"
+            # })
 
     return results
 

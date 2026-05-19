@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=1:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=1:00:00
 
-DATASET_NAME=Contrastive_Dent_Dataset
+DATASET_NAME=removed-front-teeth-v7
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -63,5 +63,4 @@ echo "Cloning resluts ..."
 
 mkdir -p $HOME_DIR/results/$DATASET_NAME/
 
-cp $LOG_DIR/evaluation_metric_results.pkl $HOME_DIR/results/$DATASET_NAME/
-cp $LOG_DIR/evaluation_metric_results_for_retrieval.pkl $HOME_DIR/results/$DATASET_NAME/
+cp -r $LOG_DIR $HOME_DIR/results/$DATASET_NAME/

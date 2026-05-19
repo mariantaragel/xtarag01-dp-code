@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=1:mem=16gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=4:00:00
 
-DATASET_NAME=Contrastive_Dent_Dataset
+DATASET_NAME=removed-front-teeth-v9
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -23,18 +23,20 @@ LISTENER_FILE=$HOME_DIR/pretrained/$DATASET_NAME/latent_listener/best_model.pkl
 RANDOM_SEED=42
 GPU_ID=0
 LATENT_BACKBONE=pcae
-SELF_CONTRAST=True
-NET_ABLATION=coupled # decoupling_mag_direction
 NUM_WORKERS=1
 
+IDENTITY_PENALTY=0.005
+NET_ABLATION=coupled
+# NET_ABLATION=decoupling_mag_direction
+
+SELF_CONTRAST=True
 BATCH_SIZE=64
-LR=0.0001
-IDENTITY_PENALTY=0
+LR=0.0005
 WEIGHT_DECAY=0
 
 EPOCHS=150
-TRAIN_PATIENCE=1000
-LR_PATIENCE=10
+TRAIN_PATIENCE=10
+LR_PATIENCE=6
 
 export WANDB_API_KEY="d82cb78d19b6bb6e39d3f99f150c6bec08610567"
 export SINGULARITYENV_PYTHONPATH="$HOME_DIR/.local/lib/python3.12/site-packages"
