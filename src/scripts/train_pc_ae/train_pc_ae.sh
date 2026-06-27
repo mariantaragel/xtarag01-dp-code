@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=2:mem=32gb:ngpus=1:scratch_local=20gb:gpu_cap=sm_75
 #PBS -l walltime=8:00:00
 
-DATASET_NAME=removed-upper-teeth-v1
+DATASET_NAME=removed-upper-teeth-v5
 
 CONTAINER=/cvmfs/singularity.metacentrum.cz/NGC/PyTorch:25.02-py3.SIF
 HOME_DIR=/storage/brno2/home/xtarag01
@@ -26,7 +26,7 @@ DECODER_NET=mlp
 BATCH_SIZE=32
 LR=0.0005
 
-LATENT_BACKBONE=pc_ae
+LATENT_BACKBONE=pc_ae_cls
 LOSS=chamfer
 N_PC_POINTS=4096
 EPOCHS=350

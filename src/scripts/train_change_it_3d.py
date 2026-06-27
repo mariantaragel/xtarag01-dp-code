@@ -120,7 +120,7 @@ for param in pretrained_listener.parameters():
 # Train it.
 ##
 
-torch.backends.cudnn.enabled = False  # uncomment if pretrained listener is based on an LSTM
+# torch.backends.cudnn.enabled = False  # uncomment if pretrained listener is based on an LSTM
 
 if args.train:
     epochs_val_not_improved = 0
