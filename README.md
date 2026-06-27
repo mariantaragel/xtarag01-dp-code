@@ -10,6 +10,12 @@ In order to train a whole system from scratch, one could use scripts in `xtarag0
 - `train_change_it_3d/train_change_it_3d.sh` to train the Shape Editor,
 - `evaluate_change_it_3d/evaluate_change_it_3d.sh` to evaluate the trained system on a test set.
 
+## Submodules
+To efficiently calculate CD and EMD on the GPU, specific CUDA PyTorch implementations of these metrics were used:
+
+- [Chamfer Distance](https://github.com/ThibaultGROUEIX/ChamferDistancePytorch)
+- [Earth Mover's Distance](https://github.com/daerduoCarey/PyTorchEMD)
+
 ## Related publication
 TARAGEĽ, Marián. Language-Guided 3D Anatomical Shape Editing. Brno, 2026. Master’s thesis. Brno University of Technology, Faculty of Information Technology. Supervisor Ing. Tibor Kubík
 
