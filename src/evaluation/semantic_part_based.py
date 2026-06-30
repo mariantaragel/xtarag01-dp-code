@@ -1,3 +1,8 @@
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
+"""
+
 import numpy as np
 
 from in_out.datasets.shape_net_parts import (

@@ -1,5 +1,6 @@
 """
-TODO. NOT fully finished, BUT for its minimal usage for ShapeTalk is OK.
+Adopted from ChangeIt3D by Achlioptas et al.
+Only minimal usage for ShapeTalk
 """
 
 import os.path as osp

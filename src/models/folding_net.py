@@ -1,3 +1,7 @@
+"""
+Created by Marián Tarageľ (xtarag01)
+"""
+
 import math
 
 import torch

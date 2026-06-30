@@ -1,3 +1,7 @@
+"""
+Created by Marián Tarageľ (xtarag01)
+"""
+
 import numpy as np
 import trimesh
 

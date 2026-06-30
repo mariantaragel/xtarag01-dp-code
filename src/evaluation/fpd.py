@@ -1,9 +1,5 @@
-"""Calculate Frechet Pointcloud Distance referened by Frechet Inception Distance."
-    [ref] GANs Trained by a Two Time-Scale Update Rule Converge to a Local Nash Equilibrium
-    github code  : (https://github.com/bioinf-jku/TTUR)
-    paper        : (https://arxiv.org/abs/1706.08500)
-
-** Code adapted from: https://github.com/jtpils/TreeGAN/blob/master/evaluation/FPD.py **
+"""
+Adopted from https://github.com/jtpils/TreeGAN/blob/master/evaluation/FPD.py
 """
 
 import types

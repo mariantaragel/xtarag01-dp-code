@@ -1,3 +1,7 @@
+"""
+Created by Marián Tarageľ (xtarag01)
+"""
+
 import argparse
 import json
 import os

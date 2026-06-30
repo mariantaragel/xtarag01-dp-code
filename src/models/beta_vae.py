@@ -1,3 +1,7 @@
+"""
+Created by Marián Tarageľ (xtarag01)
+"""
+
 import torch
 from torch import nn
 

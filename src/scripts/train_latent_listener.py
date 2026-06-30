@@ -1,6 +1,6 @@
 """
-Script to train a Neural Listener based on given latent representation of 3D shapes (e.g., from PC-AE, ImNet etc.).
-Panos Achlioptas (https://optas.github.io)
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import os.path as osp

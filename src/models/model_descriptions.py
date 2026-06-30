@@ -1,3 +1,8 @@
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
+"""
+
 import os.path as osp
 
 from torch import nn

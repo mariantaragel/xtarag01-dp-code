@@ -1,8 +1,6 @@
 """
-Basic torch tensor manipulations captured via nn.Modules
-
-Originally created at 9/20/20, for Python 3.x
-2020 Panos Achlioptas (pachlioptas@gmail.com) & Stanford Geometric Computing Lab
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import torch

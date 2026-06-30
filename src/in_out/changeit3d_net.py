@@ -1,8 +1,6 @@
 """
-Routines that concern I/O operations directly relevant to the training/testing of a -ChangeIt3DNet- architecture.
-
-Originally created sometime around 2021, for Python 3.x
-Around 2022 Panos Achlioptas (https://optas.github.io)
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 from ast import literal_eval

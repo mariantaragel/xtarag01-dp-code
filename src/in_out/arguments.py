@@ -1,3 +1,8 @@
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
+"""
+
 import argparse
 import json
 import os.path as osp

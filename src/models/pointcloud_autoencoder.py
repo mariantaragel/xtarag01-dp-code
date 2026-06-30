@@ -1,3 +1,9 @@
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
+"""
+
+
 import torch
 from torch import nn
 

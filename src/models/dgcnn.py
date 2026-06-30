@@ -1,5 +1,6 @@
-"""Adapting original DGCNN implementation from:
-https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py
+"""
+Adopted from https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import torch

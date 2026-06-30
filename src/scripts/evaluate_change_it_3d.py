@@ -1,7 +1,6 @@
 """
-Script to evaluate a Language-Assisted 3D Shape Edit/Deformation System (ChangeIt3D)
-
-Notice the main code for the metric-evaluation is at the function ```run_all_metrics'''.
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import os.path as osp

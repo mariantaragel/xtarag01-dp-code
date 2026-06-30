@@ -1,7 +1,6 @@
 """
-Script to train/test a Language-Assisted 3D Shape Edit/Deformation System (ChangeIt3D)
-Finished sometime around 2022.
-By Panos Achlioptas (https://optas.github.io)
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import os.path as osp

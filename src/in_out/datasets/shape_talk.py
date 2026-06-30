@@ -1,6 +1,5 @@
 """
-Originally created at 5/24/21, for Python 3.x
-2022 Panos Achlioptas
+Adopted from ChangeIt3D by Achlioptas et al.
 """
 
 import os.path as osp

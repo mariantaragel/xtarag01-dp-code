@@ -1,11 +1,6 @@
 """
-Dataset oriented routines to handle pointclouds of shapes.
-
-Originally created at 2/16/21, for Python 3.x
-2022 Panos Achlioptas (https://optas.github.io)
-
-TODO. Make dependency of point-cloud subsampling and random_seed to be such that the batch_size does not matter.
-      https://github.com/pytorch/pytorch/issues/5059
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import os.path as osp

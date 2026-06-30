@@ -1,3 +1,8 @@
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
+"""
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset

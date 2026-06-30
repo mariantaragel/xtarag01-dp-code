@@ -1,12 +1,6 @@
 """
-
-Note the xxxx_transform_point_clouds methods below, work like this:
-    A. Use a latent-based ```direction-finder``` to find an "updated" latent code GIVEN:
-            i) a starting shape (latent),
-            ii) referential language that denotes the desired edit, and,
-            iii) a transformation/edit magnitude that reflects how far your edit can go inside the latent space.
-    B. Use the decoder of a ```{pc_ae, sgf, imnet}``` to decode i.e., reconstruct the updated latents.
-
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 from collections import defaultdict

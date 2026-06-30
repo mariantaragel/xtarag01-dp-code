@@ -1,6 +1,6 @@
-"""Keep track of a certain word-vocabulary associated with a linguistic dataset.
-Originally created in 2019, for Python 3.x
-2021 Panos Achlioptas (https://optas.github.io)
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import pickle

@@ -1,8 +1,6 @@
 """
-Utilities for distance measurements in GPU.
-
-Originally created at 07/2019, for Python 3.x
-2021 Panos Achlioptas (https://optas.github.io) & Stanford Geometric Computing Lab
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import torch

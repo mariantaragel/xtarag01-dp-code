@@ -1,3 +1,9 @@
+"""
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
+"""
+
+
 import torch.nn as nn
 import torch.nn.functional as F
 

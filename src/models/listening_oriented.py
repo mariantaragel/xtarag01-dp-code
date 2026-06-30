@@ -1,6 +1,6 @@
 """
-Originally created at 2/17/21, for Python 3.x
-Panos Achlioptas (https://optas.github.io/)
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import math

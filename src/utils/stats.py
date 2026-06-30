@@ -1,9 +1,8 @@
 """
-Basic utilities to keep track of statistics on training, testing etc.
-
-Originally created at 9/17/20, for Python 3.x
-2020 Panos Achlioptas (pachlioptas@gmail.com) & Stanford Geometric Computing Lab
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
+
 import matplotlib.pylab as plt
 
 class AverageMeter(object):

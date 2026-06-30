@@ -1,12 +1,6 @@
 """
-Functions implementing metric evaluations for ChangeIt3d (C3D).
-
-Notice. If you want to use your own pre-trained shape_classifier, or shape_part_classifier, be sure to adapt the input/output
-to/of the provided ChangeIt3D model so the 3D data (e.g., PointClouds) are consistently scaled/aligned across those neural-networks.
-
-To this end, see the input `network_input_transformations' functions used below by the ``run_all_metrics'' function.
-
-circa 2022, Panos Achlioptas (https://optas.github.io)
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import os.path as osp

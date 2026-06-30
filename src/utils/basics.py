@@ -1,6 +1,6 @@
 """
-Originally wrote sometime around 2018.
-Panos Achlioptas (https://optas.github.io)
+Adopted from ChangeIt3D by Achlioptas et al.
+Modified by Marián Tarageľ (xtarag01)
 """
 
 import multiprocessing as mp
